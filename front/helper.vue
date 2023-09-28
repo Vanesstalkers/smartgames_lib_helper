@@ -247,7 +247,7 @@ export default {
 
         await api.action
           .call({
-            path: 'lib.helper.api.action',
+            path: 'helper.api.action',
             args: [{ action, step, tutorial, isMobile: this.state.isMobile }],
           })
           .catch(prettyAlert);
@@ -294,7 +294,7 @@ export default {
         case 'restoreLinks':
           await api.action
             .call({
-              path: 'lib.helper.api.restoreLinks',
+              path: 'helper.api.restoreLinks',
               args: [{ inGame: this.inGame }],
             })
             .then((data) => {
@@ -316,7 +316,7 @@ export default {
         case 'leaveGame':
           await api.action
             .call({
-              path: 'lib.game.api.leave',
+              path: 'game.api.leave',
               args: [],
             })
             .catch(prettyAlert);
@@ -328,7 +328,7 @@ export default {
       if (!tutorial) return;
       api.action
         .call({
-          path: 'lib.helper.api.action',
+          path: 'helper.api.action',
           args: [{ tutorial, step: simple ? code : undefined, usedLink: code }],
         })
         .catch(prettyAlert);
