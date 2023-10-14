@@ -16,6 +16,7 @@ async (context, { action, step, tutorial: tutorialName, usedLink, isMobile }) =>
     const { _prepare: prepareStep } = helper.actions || {};
     const nextStep = lib.utils.structuredClone(helper, { convertFuncToString: true });
     if (prepareStep) prepareStep(nextStep, { isMobile });
+    if (!nextStep.hideTime) nextStep.hideTime = null; // мог быть установлен в предыдущем helper`е
     user.set({ helper: nextStep });
     user.set({ currentTutorial: { active: tutorialName } });
     if (usedLink) {
@@ -34,6 +35,7 @@ async (context, { action, step, tutorial: tutorialName, usedLink, isMobile }) =>
       const { _prepare: prepareStep } = tutorial[step].actions || {};
       const nextStep = lib.utils.structuredClone(tutorial[step], { convertFuncToString: true });
       if (prepareStep) prepareStep(nextStep, { isMobile });
+      if (!nextStep.hideTime) nextStep.hideTime = null; // мог быть установлен в предыдущем helper`е
 
       if (nextStep) {
         user.set({ helper: nextStep }, { reset: ['helper', 'helper.actions'] }); // reset обязателен, так как набор ключей в каждом helper-step может быть разный

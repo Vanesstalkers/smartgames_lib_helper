@@ -154,8 +154,19 @@ export default {
   },
   methods: {
     async update() {
-      let { text, img, active, pos, superPos = false, fullscreen = false, actions, buttons } = this.helperData;
+      let {
+        text,
+        img,
+        active,
+        pos,
+        superPos = false,
+        fullscreen = false,
+        actions,
+        buttons,
+        hideTime,
+      } = this.helperData;
       if (!pos) pos = 'bottom-right'; // тут может быть null
+
       if (typeof pos === 'object') {
         if (this.state.isMobile) {
           pos = pos.mobile;
@@ -224,6 +235,13 @@ export default {
             }
           });
         });
+      }
+
+      if (hideTime > 0) {
+        const self = this;
+        setTimeout(() => {
+          self.$set(this.helperClassMap, 'dialog-active', false);
+        }, hideTime);
       }
     },
     async action({ action, step, tutorial, link }) {
@@ -324,7 +342,8 @@ export default {
       }
     },
     showTutorial({ tutorial, code, simple = true }) {
-      if (this.helperDialogActive) return; // другое обучение уже активировано
+      // не актуально, так как: .helper.dialog-active > .helper-link { display: none }
+      // if (this.helperDialogActive) return; // другое обучение уже активировано
       if (!tutorial) return;
       api.action
         .call({
@@ -356,7 +375,7 @@ export default {
       this.alert = null;
       this.hideAlert = null;
     };
-    window.prettyAlert = ({ message, stack } = {}, { hideTime = 5 } = {}) => {
+    window.prettyAlert = ({ message, stack } = {}, { hideTime = 5000 } = {}) => {
       if (message === 'Forbidden') message += ` (попробуйте обновить страницу)`;
       self.alert = message;
       self.hideAlert = stack;
@@ -366,7 +385,7 @@ export default {
         setTimeout(() => {
           self.alert = null;
           self.hideAlert = null;
-        }, hideTime * 1000);
+        }, hideTime);
       }
     };
 
