@@ -50,6 +50,6 @@ async (context, { action, step, tutorial: tutorialName, usedLink, isMobile }) =>
     user.set({ helper: null });
   }
 
-  await user.saveChanges('helper.api.action');
+  await user.saveChanges();
   return { status: 'ok' };
 };
