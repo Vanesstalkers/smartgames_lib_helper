@@ -5,9 +5,9 @@
       <div v-if="helperData.img" class="img">
         <img :src="helperData.img" />
       </div>
-      <div class="text">
-        {{ helperData.text }}
-      </div>
+
+      <div v-if="helperData.text" class="text">{{ helperData.text }}</div>
+      <div v-if="helperData.html" class="text" v-html="helperData.html" />
       <div class="video" />
       <div v-if="helperData.buttons" class="controls">
         <button v-for="button in helperData.buttons" :key="button.text" v-on:click.stop="action({ ...button })">

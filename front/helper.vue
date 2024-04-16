@@ -91,6 +91,9 @@ export default {
     'helperData.text': function () {
       this.update();
     },
+    'helperData.html': function () {
+      this.update();
+    },
   },
   computed: {
     state() {
@@ -100,7 +103,7 @@ export default {
       return this.state.store.user?.[this.state.currentUser]?.helper || {};
     },
     helperDialogActive() {
-      return this.helperData.text || this.helperData.img ? true : false;
+      return (this.helperData.text || this.helperData.html) || this.helperData.img ? true : false;
     },
     helperLinks() {
       return this.state.store.user?.[this.state.currentUser]?.helperLinks || {};
@@ -138,6 +141,7 @@ export default {
     async update() {
       let {
         text,
+        html,
         img,
         active,
         pos,
@@ -159,16 +163,16 @@ export default {
       }
 
       this.$set(this.helperClassMap, 'dialog-hidden', false);
-      this.$set(this.helperClassMap, 'dialog-active', text || img ? true : false);
+      this.$set(this.helperClassMap, 'dialog-active', (text || html) || img ? true : false);
       this.$set(this.helperClassMap, 'fullscreen', fullscreen);
-      this.$set(this.dialogClassMap, 'super-pos', false);
+      this.$set(this.helperClassMap, 'super-pos', false);
       document.body.removeAttribute('tutorial-active');
 
       const dialogStyle = {};
       const offset = this.state.isMobile ? '0px' : '20px';
       if (superPos) {
         document.body.setAttribute('tutorial-active', 1);
-        this.$set(this.dialogClassMap, 'super-pos', true);
+        this.$set(this.helperClassMap, 'super-pos', true);
       } else if (fullscreen) {
         if (pos.includes('top'))
           Object.assign(dialogStyle, { top: offset, left: offset, width: '100%', height: '100%' });
@@ -413,84 +417,92 @@ export default {
   cursor: pointer;
   font-size: 14px;
   transform-origin: left bottom;
-}
-.helper-guru > .alert {
-  position: absolute;
-  bottom: 110%;
-  border: 4px solid #f4e205;
-  background-image: url(@/assets/clear-black-back.png);
-  color: white;
-  font-size: 24px;
-  padding: 20px 60px 20px 80px;
-  min-width: 300px;
-  text-align: center;
-  cursor: default;
-}
-.helper-guru > .alert:before {
-  content: '';
-  position: absolute;
-  left: 20px;
-  top: 20px;
-  width: 30px;
-  height: 30px;
-  background-image: url(@/assets/alert.png);
-  background-size: 30px;
-}
-.helper-guru > .alert > .close {
-  position: absolute;
-  right: -10px;
-  top: -10px;
-  width: 20px;
-  height: 20px;
-  background-image: url(@/assets/close.png);
-  background-size: 20px;
-  background-color: black;
-  cursor: pointer;
-}
-.helper-guru > .alert > .close:hover {
-  opacity: 0.7;
-}
-.helper-guru > .alert > .show-hide {
-  position: absolute;
-  right: 15px;
-  top: -10px;
-  width: 20px;
-  height: 20px;
-  background-image: url(@/assets/info.png);
-  background-size: 20px;
-  background-color: black;
-  border-radius: 50%;
-  cursor: pointer;
-}
-.helper-guru.scale-1 {
-  scale: 0.8;
-}
-.helper-guru.scale-2 {
-  scale: 1;
-}
-.helper-guru.scale-3 {
-  scale: 1.5;
-}
-.helper-guru.scale-4 {
-  scale: 2;
-}
-.helper-guru.scale-5 {
-  scale: 2.5;
+
+  > .alert {
+    position: absolute;
+    bottom: 110%;
+    border: 4px solid #f4e205;
+    background-image: url(@/assets/clear-black-back.png);
+    color: white;
+    font-size: 24px;
+    padding: 20px 60px 20px 80px;
+    min-width: 300px;
+    text-align: center;
+    cursor: default;
+
+    &::before {
+      content: '';
+      position: absolute;
+      left: 20px;
+      top: 20px;
+      width: 30px;
+      height: 30px;
+      background-image: url(@/assets/alert.png);
+      background-size: 30px;
+    }
+
+    > .close {
+      position: absolute;
+      right: -10px;
+      top: -10px;
+      width: 20px;
+      height: 20px;
+      background-image: url(@/assets/close.png);
+      background-size: 20px;
+      background-color: black;
+      cursor: pointer;
+
+      &:hover {
+        opacity: 0.7;
+      }
+    }
+
+    > .show-hide {
+      position: absolute;
+      right: 15px;
+      top: -10px;
+      width: 20px;
+      height: 20px;
+      background-image: url(@/assets/info.png);
+      background-size: 20px;
+      background-color: black;
+      border-radius: 50%;
+      cursor: pointer;
+    }
+  }
+
+  &.scale-1 {
+    scale: 0.8;
+  }
+  &.scale-2 {
+    scale: 1;
+  }
+  &.scale-3 {
+    scale: 1.5;
+  }
+  &.scale-4 {
+    scale: 2;
+  }
+  &.scale-5 {
+    scale: 2.5;
+  }
 }
 .mobile-view .helper-guru {
   scale: 0.6;
-}
-.mobile-view .helper-guru > .alert {
-  padding: 10px 10px 10px 50px;
+
+  > .alert {
+    padding: 10px 10px 10px 50px;
+  }
 }
 .helper.in-game .helper-guru {
   top: 20px;
   bottom: auto;
   transform-origin: left top;
-}
-.helper.in-game .helper-guru > .alert {
-  top: 110%;
-  bottom: auto;
+
+  > .alert {
+    top: 110%;
+    bottom: auto;
+  }
 }
 .helper.dialog-active > .helper-guru,
 .helper.dialog-active > .helper-link {
@@ -565,6 +577,17 @@ export default {
   opacity: 0.7;
 }
 
+.helper.super-pos::after {
+  content: '';
+  background-image: url(@/assets/clear-black-back.png);
+  position: fixed;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  z-index: 10000;
+}
+
 .helper-dialog {
   display: none;
   position: fixed;
@@ -572,45 +595,47 @@ export default {
   width: 600px;
   max-width: 100%;
   max-height: 95%;
+
+  &.scale-1 {
+    scale: 0.8;
+  }
+  &.scale-2 {
+    scale: 1;
+  }
+  &.scale-3 {
+    scale: 1.5;
+  }
+  &.scale-4 {
+    scale: 2;
+  }
+  &.scale-5 {
+    scale: 2.5;
+  }
 }
-.helper-dialog.super-pos {
+.helper.super-pos .helper-dialog {
   position: fixed;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-}
-.helper-dialog.scale-1 {
-  scale: 0.8;
-}
-.helper-dialog.scale-1.super-pos {
-  transform: translate(-60%, -60%);
-}
-.helper-dialog.scale-2 {
-  scale: 1;
-}
-.helper-dialog.scale-3 {
-  scale: 1.5;
-}
-.helper-dialog.scale-3.super-pos {
-  transform: translate(-30%, -30%);
-}
-.helper-dialog.scale-4 {
-  scale: 2;
-}
-.helper-dialog.scale-4.super-pos {
-  transform: translate(-25%, -25%);
-}
-.helper-dialog.scale-5 {
-  scale: 2.5;
-}
-.helper-dialog.scale-5.super-pos {
-  transform: translate(-20%, -20%);
+
+  &.scale-1 {
+    transform: translate(-60%, -60%);
+  }
+  &.scale-3 {
+    transform: translate(-30%, -30%);
+  }
+  &.scale-4 {
+    transform: translate(-25%, -25%);
+  }
+  &.scale-5 {
+    transform: translate(-20%, -20%);
+  }
 }
 
 .mobile-view .helper-dialog {
   scale: 1;
 }
-.mobile-view .helper-dialog.super-pos {
+.mobile-view .helper.super-pos .helper-dialog {
   transform: translate(-50%, -50%);
 }
 
@@ -652,6 +677,11 @@ export default {
 
 .helper-dialog > .content > .text {
   width: 100%;
+
+  a {
+    color: #f4e205;
+    font-weight: bold;
+  }
 }
 
 .helper-dialog > .content > .controls,
