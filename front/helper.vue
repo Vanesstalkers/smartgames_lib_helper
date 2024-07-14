@@ -27,14 +27,10 @@
         <div class="text">
           {{ menu.text }}
         </div>
-
-        <ul v-if="menu.showTutorials && inGame" class="tutorials">
-          <li v-on:click.stop="action({ tutorial: 'game-tutorial-start' })">Стартовое приветствие игры</li>
-          <li v-on:click.stop="action({ tutorial: 'game-tutorial-gameControls' })">Управление игровым полем</li>
-        </ul>
-        <ul v-if="menu.showTutorials && !inGame" class="tutorials">
-          <li v-on:click.stop="action({ tutorial: 'lobby-tutorial-start' })">Стартовое приветствие</li>
-          <li v-on:click.stop="action({ tutorial: 'lobby-tutorial-menuGame' })">Игровая комната</li>
+        <ul v-if="menu.showList?.length" class="list">
+          <li v-for="(item, idx) in menu.showList" :key="'showList-' + idx" v-on:click.stop="action(item.action)">
+            {{ item.title }}
+          </li>
         </ul>
 
         <div v-if="menu.buttons" :class="['controls', menu.bigControls ? 'big' : '']">
@@ -55,7 +51,7 @@
         </div>
       </div>
     </div>
-    <helper-dialog :dialogClassMap="dialogClassMap" :dialogStyle="dialogStyle" :action="action" />
+    <helper-dialog :dialogClassMap="dialogClassMap" :dialogStyle="dialogStyle" :action="action" :input="input" />
   </div>
 </template>
 
@@ -85,11 +81,15 @@ export default {
       dialogStyle: {},
       dialogClassMap: {},
       resetLinks: Date.now(),
+      inputText: '',
     };
   },
   watch: {
     'helperData.text': function () {
       this.update();
+    },
+    'helperData.menu': function (action) {
+      this.menuAction({ action });
     },
   },
   computed: {
@@ -242,9 +242,10 @@ export default {
       } else {
         let { actions } = this.helperData;
         let actionsData = {};
+
         if (actions) {
           if (actions[action]) {
-            actionsData = (await new Function('return ' + actions[action])()(this)) || {};
+            actionsData = (await new Function('return ' + actions[action])()(this, this.inputText)) || {};
             const { exit = true } = actionsData;
             if (exit) action = 'exit';
           }
@@ -259,6 +260,9 @@ export default {
         if (tutorial) this.menu = null;
       }
     },
+    input(text) {
+      this.inputText = text;
+    },
     async initMenu() {
       if (this.inGame) {
         this.menu = {
@@ -266,7 +270,20 @@ export default {
           bigControls: true,
           buttons: [
             { text: 'Закончить игру', action: 'leaveGame' },
-            { text: 'Покажи доступные обучения', action: 'tutorials' },
+            {
+              text: 'Покажи доступные обучения',
+              action: {
+                text: 'Нажмите на нужное обучение в списке, чтобы запустить его повторно:',
+                showList: [
+                  { title: 'Стартовое приветствие игры', action: { tutorial: 'game-tutorial-start' } },
+                  { title: 'Управление игровым полем', action: { tutorial: 'game-tutorial-gameControls' } },
+                ],
+                buttons: [
+                  { text: 'Назад в меню', action: 'init' },
+                  { text: 'Спасибо', action: 'exit', exit: true },
+                ],
+              },
+            },
             { text: 'Активировать подсказки', action: 'restoreLinks' },
             { text: 'Спасибо, ничего не нужно', action: 'exit', exit: true },
           ],
@@ -278,7 +295,20 @@ export default {
           buttons: [
             { text: 'Открой мой профиль', action: 'profile' },
             { text: 'Активировать подсказки', action: 'restoreLinks' },
-            { text: 'Покажи доступные обучения', action: 'tutorials' },
+            {
+              text: 'Покажи доступные обучения',
+              action: {
+                text: 'Нажмите на нужное обучение в списке, чтобы запустить его повторно:',
+                showList: [
+                  { title: 'Стартовое приветствие', action: { tutorial: 'lobby-tutorial-start' } },
+                  { title: 'Игровая комната', action: { tutorial: 'lobby-tutorial-menuGame' } },
+                ],
+                buttons: [
+                  { text: 'Назад в меню', action: 'init' },
+                  { text: 'Спасибо', action: 'exit', exit: true },
+                ],
+              },
+            },
             { text: 'Спасибо, ничего не нужно', action: 'exit', exit: true },
           ],
         };
@@ -303,20 +333,9 @@ export default {
               args: [{ inGame: this.inGame }],
             })
             .then((data) => {
-              console.log('this.resetLinks');
               this.$set(this, 'resetLinks', Date.now());
             })
             .catch(prettyAlert);
-          break;
-        case 'tutorials':
-          this.menu = {
-            text: 'Нажмите на нужное обучение в списке, чтобы запустить его повторно:',
-            showTutorials: true,
-            buttons: [
-              { text: 'Назад в меню', action: 'init' },
-              { text: 'Спасибо', action: 'exit', exit: true },
-            ],
-          };
           break;
         case 'leaveGame':
           await api.action
@@ -326,6 +345,8 @@ export default {
             })
             .catch(prettyAlert);
           break;
+        default:
+          this.menu = action;
       }
     },
     showTutorial({ tutorial, code, simple = true }) {
@@ -552,17 +573,28 @@ export default {
   right: auto;
 }
 
-.helper-menu > .content > .tutorials {
-  margin-bottom: 0px;
-}
-.helper-menu > .content > .tutorials > * {
-  cursor: pointer;
-  padding: 0px 20px;
-  text-align: left;
-  padding-bottom: 6px;
-}
-.helper-menu > .content > .tutorials > *:hover {
-  opacity: 0.7;
+.helper-menu > .content {
+  display: flex;
+
+  .text {
+    width: 100%;
+    text-align: left;
+  }
+
+  .list {
+    margin-bottom: 0px;
+
+    > * {
+      cursor: pointer;
+      padding: 0px 20px;
+      text-align: left;
+      padding-bottom: 6px;
+
+      &:hover {
+        opacity: 0.7;
+      }
+    }
+  }
 }
 
 .helper-dialog {
