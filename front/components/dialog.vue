@@ -5,9 +5,9 @@
       <div v-if="helperData.img" class="img">
         <img :src="helperData.img" />
       </div>
-      <div class="text">
-        {{ helperData.text }}
-      </div>
+
+      <div v-if="helperData.text" class="text">{{ helperData.text }}</div>
+      <div v-if="helperData.html" class="text" v-html="helperData.html" />
       <div v-if="helperData.input" class="input">
         <input :placeholder="helperData.input.placeholder" v-on:change="input($event.target.value);" />
       </div>
