@@ -21,7 +21,7 @@ async (context, { action, step, tutorial: tutorialName, usedLink, isMobile }) =>
     user.set({ currentTutorial: { active: tutorialName } });
     if (usedLink) {
       user.set({ helperLinks: { [usedLink]: { used: true } } });
-      // !!! если запущена игра, то давать прибавку к таймеру
+      if (user.gameId) lib.store.broadcaster.publishAction(`game-${user.gameId}`, 'playerUseTutorialLink', { user });
     }
   } else if (currentTutorial.active) {
     if (action === 'exit') {
