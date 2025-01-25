@@ -7,10 +7,7 @@
       </div>
 
       <div v-if="helperData.text" class="text">{{ helperData.text }}</div>
-      <div v-if="helperData.html" class="text" v-html="helperData.html" />
-      <div v-if="helperData.input" class="input">
-        <input :placeholder="helperData.input.placeholder" v-on:change="input($event.target.value);" />
-      </div>
+      <div v-if="helperData.html" v-html="helperDataHtml()"></div>
       <div class="video" />
       <div v-if="helperData.buttons" class="controls">
         <button v-for="button in helperData.buttons" :key="button.text" v-on:click.stop="action({ ...button })">
@@ -29,6 +26,8 @@
 </template>
 
 <script>
+import { inject } from 'vue';
+
 export default {
   name: 'helper',
   components: {},
@@ -43,18 +42,24 @@ export default {
       type: Function,
       default: () => () => {},
     },
-    input: {
-      type: Function,
-      default: () => () => {},
+    inputData: {
+      type: Object,
+      default: () => ({}),
     },
   },
   data() {
     return {};
   },
   watch: {},
+  setup() {
+    return inject('gameGlobals');
+  },
   computed: {
     state() {
       return this.$root.state || {};
+    },
+    game() {
+      return this.getGame();
     },
     helperData() {
       return this.customData || this.state.store.user?.[this.state.currentUser]?.helper || {};
@@ -65,7 +70,17 @@ export default {
         .map(([name]) => name);
     },
   },
-  methods: {},
+  methods: {
+    helperDataHtml() {
+      let html;
+      if (typeof this.helperData.html === 'string') {
+        html = new Function(`return ${this.helperData.html}`)()(this.game);
+      } else {
+        html = this.helperData.html(this.game);
+      }
+      return html;
+    },
+  },
 };
 </script>
 

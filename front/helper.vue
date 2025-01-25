@@ -1,5 +1,5 @@
 <template>
-  <div :class="['helper', inGame ? 'in-game' : '', ...helperClass]">
+  <div v-if="!resetFlag" :class="['helper', inGame ? 'in-game' : '', ...helperClass]" @change="handleChange">
     <div
       v-for="link in filledHelperLinks"
       :key="link.code"
@@ -27,6 +27,7 @@
         <div class="text">
           {{ menu.text }}
         </div>
+        <div v-if="menu.html" v-html="menu.html(game)"></div>
         <ul v-if="menu.showList?.length" class="list">
           <li v-for="(item, idx) in menu.showList" :key="'showList-' + idx" v-on:click.stop="action(item.action)">
             {{ item.title }}
@@ -51,11 +52,17 @@
         </div>
       </div>
     </div>
-    <helper-dialog :dialogClassMap="dialogClassMap" :dialogStyle="dialogStyle" :action="action" :input="input" />
+    <helper-dialog
+      :dialogClassMap="dialogClassMap"
+      :dialogStyle="dialogStyle"
+      :action="action"
+      :inputData="inputData"
+    />
   </div>
 </template>
 
 <script>
+import { inject } from 'vue';
 import helperDialog from './components/dialog.vue';
 
 export default {
@@ -80,8 +87,8 @@ export default {
       helperClassMap: {},
       dialogStyle: {},
       dialogClassMap: {},
-      resetLinks: Date.now(),
-      inputText: '',
+      resetFlag: false,
+      inputData: {},
     };
   },
   watch: {
@@ -95,15 +102,21 @@ export default {
       this.menuAction({ action });
     },
   },
+  setup() {
+    return inject('gameGlobals');
+  },
   computed: {
     state() {
       return this.$root.state || {};
+    },
+    game() {
+      return this.getGame();
     },
     helperData() {
       return this.state.store.user?.[this.state.currentUser]?.helper || {};
     },
     helperDialogActive() {
-      return (this.helperData.text || this.helperData.html) || this.helperData.img ? true : false;
+      return this.helperData.text || this.helperData.html || this.helperData.img ? true : false;
     },
     helperLinks() {
       return this.state.store.user?.[this.state.currentUser]?.helperLinks || {};
@@ -163,7 +176,7 @@ export default {
       }
 
       this.$set(this.helperClassMap, 'dialog-hidden', false);
-      this.$set(this.helperClassMap, 'dialog-active', (text || html) || img ? true : false);
+      this.$set(this.helperClassMap, 'dialog-active', text || html || img ? true : false);
       this.$set(this.helperClassMap, 'fullscreen', fullscreen);
       this.$set(this.helperClassMap, 'super-pos', false);
       document.body.removeAttribute('tutorial-active');
@@ -249,7 +262,11 @@ export default {
 
         if (actions) {
           if (actions[action]) {
-            actionsData = (await new Function('return ' + actions[action])()(this, this.inputText)) || {};
+            if (typeof actions[action] === 'string') {
+              actionsData = (await new Function('return ' + actions[action])()(this.inputData, this)) || {};
+            } else {
+              actionsData = await actions[action](this.inputData, this);
+            }
             const { exit = true } = actionsData;
             if (exit) action = 'exit';
           }
@@ -263,9 +280,6 @@ export default {
           .catch(prettyAlert);
         if (tutorial) this.menu = null;
       }
-    },
-    input(text) {
-      this.inputText = text;
     },
     async initMenu() {
       if (this.inGame) {
@@ -289,6 +303,22 @@ export default {
               },
             },
             { text: 'Активировать подсказки', action: 'restoreLinks' },
+            {
+              text: 'Восстановить игру',
+              action: {
+                text: 'Какой раунд игры восстановить?',
+                pos: 'bottom-left',
+                html: (game) => `
+                  <div v-if="menu.input" class="input">
+                    <input value="${game.round}" placeholder="${game.round}" name="restoreGameInput" type="number" min="1" max="${game.round}" />
+                  </div>
+                `,
+                buttons: [
+                  { text: 'Назад в меню', action: 'init' },
+                  { text: 'Выполнить', action: 'restoreGame' },
+                ],
+              },
+            },
             { text: 'Спасибо, ничего не нужно', action: 'exit', exit: true },
           ],
         };
@@ -319,6 +349,7 @@ export default {
       }
     },
     async menuAction({ action }) {
+      console.log("menuAction=", action);
       switch (action) {
         case 'exit':
           this.menu = null;
@@ -337,9 +368,23 @@ export default {
               args: [{ inGame: this.inGame }],
             })
             .then((data) => {
-              this.$set(this, 'resetLinks', Date.now());
+              this.menu = null;
+              this.resetFlag = true;
+              setTimeout(() => {
+                this.resetFlag = false;
+              }, 100);
             })
             .catch(prettyAlert);
+          break;
+        case 'restoreGame':
+          await api.action
+            .call({
+              path: 'game.api.restoreGame',
+              args: [{ round: this.inputData['restoreGameInput'] }],
+            })
+            .catch((err, data) => {
+              prettyAlert(err, data);
+            });
           break;
         case 'leaveGame':
           await api.action
@@ -377,6 +422,12 @@ export default {
         )
       );
     },
+    handleChange(event) {
+      console.log('handleChange(event) {', event);
+      const code = event.target.name;
+      if (code === 'restoreGameInput' && parseInt(event.target.value) < 1) event.target.value = 1;
+      this.inputData[code] = event.target.value;
+    },
   },
   mounted() {
     // watch не всегда ловит обновление helperData на старте
@@ -388,6 +439,8 @@ export default {
       this.hideAlert = null;
     };
     window.prettyAlert = ({ message, stack } = {}, { hideTime = 5000 } = {}) => {
+      this.menu = null;
+
       if (message === 'Forbidden') message += ` (попробуйте обновить страницу)`;
       self.alert = message;
       self.hideAlert = stack;
@@ -541,6 +594,24 @@ export default {
   left: 20px;
   bottom: 100px;
   max-width: 50%;
+
+  .input {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    align-items: start;
+
+    input {
+      color: #f4e205;
+      border-color: #f4e205;
+      text-align: center;
+      background: black;
+      border-radius: 4px;
+      font-size: 16px;
+      padding: 4px;
+      margin: 20px 0px 10px 0px;
+    }
+  }
 }
 .mobile-view .helper-menu {
   bottom: 70px;
