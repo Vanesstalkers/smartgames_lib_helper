@@ -1,11 +1,12 @@
 async (context, { action, step, tutorial: tutorialName, usedLink, isMobile }) => {
   const { userId } = context.session.state;
   const user = lib.store('user').get(userId);
+  const globalTutorialData = { finishedTutorials: {}, helperLinks: {} };
   let { currentTutorial } = user;
   if (!currentTutorial) currentTutorial = {};
 
   if (tutorialName) {
-    if (currentTutorial.active) throw new Error('Другое обучение уже активно в настоящий момент.');
+    if (currentTutorial.active) throw new Error('Другое обучение уже активно в настоящий момент');
 
     const tutorial = lib.helper.getTutorial(tutorialName);
     const helper = step
@@ -20,16 +21,16 @@ async (context, { action, step, tutorial: tutorialName, usedLink, isMobile }) =>
     user.set({ helper: nextStep });
     user.set({ currentTutorial: { active: tutorialName } });
     if (usedLink) {
-      user.set({ helperLinks: { [usedLink]: { used: true } } });
+      globalTutorialData.helperLinks[usedLink] = { used: true };
       if (user.gameId) lib.store.broadcaster.publishAction(`game-${user.gameId}`, 'playerUseTutorialLink', { user });
     }
   } else if (currentTutorial.active) {
     if (action === 'exit') {
       user.set({
-        finishedTutorials: { [currentTutorial.active]: true },
         helper: null,
         currentTutorial: null,
       });
+      globalTutorialData.finishedTutorials[currentTutorial.active] = true;
     } else {
       const tutorial = lib.helper.getTutorial(currentTutorial.active);
       const { _prepare: prepareStep } = tutorial[step].actions || {};
@@ -42,10 +43,10 @@ async (context, { action, step, tutorial: tutorialName, usedLink, isMobile }) =>
         user.set({ currentTutorial: { step } });
       } else {
         user.set({
-          finishedTutorials: { [currentTutorial.active]: true },
           helper: null,
           currentTutorial: null,
         });
+        globalTutorialData.finishedTutorials[currentTutorial.active] = true;
       }
     }
   } else {
@@ -53,5 +54,10 @@ async (context, { action, step, tutorial: tutorialName, usedLink, isMobile }) =>
   }
 
   await user.saveChanges();
+  if (Object.keys(globalTutorialData.finishedTutorials).length || Object.keys(globalTutorialData.helperLinks).length) {
+    user.set({ ...globalTutorialData });
+    await user.saveChanges({ saveToLobbyUser: true });
+  }
+  
   return { status: 'ok' };
 };
