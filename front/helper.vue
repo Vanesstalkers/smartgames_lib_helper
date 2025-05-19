@@ -611,7 +611,7 @@ export default {
   }
 
   &.scale-3 {
-    scale: 1.5;
+    scale: 1.2;
   }
 
   &.scale-4 {
@@ -633,8 +633,12 @@ export default {
     transform: translate(-60%, -60%);
   }
 
+  &.scale-2 {
+    transform: translate(-50%, -50%);
+  }
+
   &.scale-3 {
-    transform: translate(-30%, -30%);
+    transform: translate(-40%, -40%);
   }
 
   &.scale-4 {
@@ -644,6 +648,26 @@ export default {
   &.scale-5 {
     transform: translate(-20%, -20%);
   }
+
+  .content {
+    padding-right: 20px;
+    align-items: center;
+
+    .img {
+      width: 100%;
+      height: 80%;
+
+      img {
+        max-width: 100%;
+        height: 100%;
+      }
+    }
+
+    &.nowrap {
+      flex-wrap: wrap;
+    }
+  }
+
 }
 
 .mobile-view .helper-dialog {
@@ -805,13 +829,14 @@ body[tutorial-active] #app:after {
 
 .helper-link {
   position: fixed;
-  width: 50px;
-  height: 50px;
+  width: 30px;
+  height: 30px;
   margin-left: -25px;
   margin-top: -25px;
   z-index: 2;
   cursor: pointer;
   box-shadow: 0 0 10px 10px #f4e205;
+  border: 1px solid #f4e205;
 }
 
 .helper-link:hover {
