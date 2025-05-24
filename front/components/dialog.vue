@@ -8,9 +8,6 @@
 
       <div v-if="helperData.text" class="text">{{ helperData.text }}</div>
       <div v-if="helperData.html" class="text" v-html="helperData.html" />
-      <div v-if="helperData.input" class="input">
-        <input :placeholder="helperData.input.placeholder" v-on:change="input($event.target.value);" />
-      </div>
       <div class="video" />
       <div v-if="helperData.buttons" class="controls">
         <button v-for="button in helperData.buttons" :key="button.text" v-on:click.stop="action({ ...button })">
@@ -43,10 +40,6 @@ export default {
       type: Function,
       default: () => () => {},
     },
-    input: {
-      type: Function,
-      default: () => () => {},
-    },
   },
   data() {
     return {};
@@ -69,23 +62,4 @@ export default {
 };
 </script>
 
-<style lang="scss">
-.helper-dialog {
-  .input {
-    display: flex;
-    justify-content: center;
-    width: 100%;
-    align-items: start;
-
-    input {
-      color: #f4e205;
-      border-color: #f4e205;
-      text-align: center;
-      background: black;
-      border-radius: 4px;
-      font-size: 16px;
-      padding: 4px;
-    }
-  }
-}
-</style>
+<style lang="scss"></style>

@@ -1,15 +1,10 @@
 <template>
-  <div :class="['helper', inGame ? 'in-game' : '', ...helperClass]">
-    <div
-      v-for="link in filledHelperLinks"
-      :key="link.code"
-      :class="['helper-link', 'helper-avatar', link.customClass]"
+  <div v-if="!resetFlag" :class="['helper', inGame ? 'in-game' : '', ...helperClass]">
+    <div v-for="link in filledHelperLinks" :key="link.code" :class="['helper-link', 'helper-avatar', link.customClass]"
       :style="{
         left: `${link.clientRect.left + (link.pos.left ? 0 : link.clientRect.width)}px`,
         top: `${link.clientRect.top + (link.pos.top ? 0 : link.clientRect.height)}px`,
-      }"
-      v-on:click.stop="showTutorial(link)"
-    />
+      }" v-on:click.stop="showTutorial(link)" />
 
     <div v-if="!menu" :class="['helper-guru', 'helper-avatar', `scale-${state.guiScale}`]" v-on:click.stop="initMenu">
       <div v-if="alert" class="alert" v-on:click.stop="">
@@ -27,31 +22,28 @@
         <div class="text">
           {{ menu.text }}
         </div>
-        <ul v-if="menu.showList?.length" class="list">
-          <li v-for="(item, idx) in menu.showList" :key="'showList-' + idx" v-on:click.stop="action(item.action)">
-            {{ item.title }}
-          </li>
+
+        <ul v-if="menu.showTutorials && inGame" class="tutorials">
+          <li v-on:click.stop="action({ tutorial: 'game-tutorial-start' })">Стартовое приветствие игры</li>
+          <li v-on:click.stop="action({ tutorial: 'game-tutorial-gameControls' })">Управление игровым полем</li>
+        </ul>
+        <ul v-if="menu.showTutorials && !inGame" class="tutorials">
+          <li v-on:click.stop="action({ tutorial: 'lobby-tutorial-start' })">Стартовое приветствие</li>
+          <li v-on:click.stop="action({ tutorial: 'lobby-tutorial-menuGame' })">Игровая комната</li>
         </ul>
 
         <div v-if="menu.buttons" :class="['controls', menu.bigControls ? 'big' : '']">
-          <button
-            v-for="button in menu.buttons"
-            :key="button.text"
-            v-on:click.stop="menuAction({ action: button.action })"
-          >
+          <button v-for="button in menu.buttons" :key="button.text"
+            v-on:click.stop="menuAction({ action: button.action })">
             {{ button.text }}
             <font-awesome-icon v-if="button.exit" :icon="['far', 'circle-xmark']" size="lg" style="color: #f4e205" />
-            <font-awesome-icon
-              v-if="button.action === 'leaveGame'"
-              :icon="['fas', 'right-from-bracket']"
-              size="lg"
-              style="color: #f4e205"
-            />
+            <font-awesome-icon v-if="button.action === 'leaveGame'" :icon="['fas', 'right-from-bracket']" size="lg"
+              style="color: #f4e205" />
           </button>
         </div>
       </div>
     </div>
-    <helper-dialog :dialogClassMap="dialogClassMap" :dialogStyle="dialogStyle" :action="action" :input="input" />
+    <helper-dialog :dialogClassMap="dialogClassMap" :dialogStyle="dialogStyle" :action="action" />
   </div>
 </template>
 
@@ -80,8 +72,7 @@ export default {
       helperClassMap: {},
       dialogStyle: {},
       dialogClassMap: {},
-      resetLinks: Date.now(),
-      inputText: '',
+      resetFlag: false,
     };
   },
   watch: {
@@ -90,9 +81,6 @@ export default {
     },
     'helperData.html': function () {
       this.update();
-    },
-    'helperData.menu': function (action) {
-      this.menuAction({ action });
     },
   },
   computed: {
@@ -103,7 +91,7 @@ export default {
       return this.state.store.user?.[this.state.currentUser]?.helper || {};
     },
     helperDialogActive() {
-      return (this.helperData.text || this.helperData.html) || this.helperData.img ? true : false;
+      return this.helperData.text || this.helperData.html || this.helperData.img ? true : false;
     },
     helperLinks() {
       return this.state.store.user?.[this.state.currentUser]?.helperLinks || {};
@@ -163,7 +151,7 @@ export default {
       }
 
       this.$set(this.helperClassMap, 'dialog-hidden', false);
-      this.$set(this.helperClassMap, 'dialog-active', (text || html) || img ? true : false);
+      this.$set(this.helperClassMap, 'dialog-active', text || html || img ? true : false);
       this.$set(this.helperClassMap, 'fullscreen', fullscreen);
       this.$set(this.helperClassMap, 'super-pos', false);
       document.body.removeAttribute('tutorial-active');
@@ -246,10 +234,9 @@ export default {
       } else {
         let { actions } = this.helperData;
         let actionsData = {};
-
         if (actions) {
           if (actions[action]) {
-            actionsData = (await new Function('return ' + actions[action])()(this, this.inputText)) || {};
+            actionsData = (await new Function('return ' + actions[action])()(this)) || {};
             const { exit = true } = actionsData;
             if (exit) action = 'exit';
           }
@@ -264,30 +251,14 @@ export default {
         if (tutorial) this.menu = null;
       }
     },
-    input(text) {
-      this.inputText = text;
-    },
     async initMenu() {
       if (this.inGame) {
         this.menu = {
           text: 'Чем могу помочь?',
           bigControls: true,
           buttons: [
-            { text: 'Закончить игру', action: 'leaveGame' },
-            {
-              text: 'Покажи доступные обучения',
-              action: {
-                text: 'Нажмите на нужное обучение в списке, чтобы запустить его повторно:',
-                showList: [
-                  { title: 'Стартовое приветствие игры', action: { tutorial: 'game-tutorial-start' } },
-                  { title: 'Управление игровым полем', action: { tutorial: 'game-tutorial-gameControls' } },
-                ],
-                buttons: [
-                  { text: 'Назад в меню', action: 'init' },
-                  { text: 'Спасибо', action: 'exit', exit: true },
-                ],
-              },
-            },
+            { text: 'Выйти из игры', action: 'leaveGame' },
+            { text: 'Покажи доступные обучения', action: 'tutorials' },
             { text: 'Активировать подсказки', action: 'restoreLinks' },
             { text: 'Спасибо, ничего не нужно', action: 'exit', exit: true },
           ],
@@ -299,20 +270,7 @@ export default {
           buttons: [
             { text: 'Открой мой профиль', action: 'profile' },
             { text: 'Активировать подсказки', action: 'restoreLinks' },
-            {
-              text: 'Покажи доступные обучения',
-              action: {
-                text: 'Нажмите на нужное обучение в списке, чтобы запустить его повторно:',
-                showList: [
-                  { title: 'Стартовое приветствие', action: { tutorial: 'lobby-tutorial-start' } },
-                  { title: 'Игровая комната', action: { tutorial: 'lobby-tutorial-menuGame' } },
-                ],
-                buttons: [
-                  { text: 'Назад в меню', action: 'init' },
-                  { text: 'Спасибо', action: 'exit', exit: true },
-                ],
-              },
-            },
+            { text: 'Покажи доступные обучения', action: 'tutorials' },
             { text: 'Спасибо, ничего не нужно', action: 'exit', exit: true },
           ],
         };
@@ -337,9 +295,23 @@ export default {
               args: [{ inGame: this.inGame }],
             })
             .then((data) => {
-              this.$set(this, 'resetLinks', Date.now());
+              this.menu = null;
+              this.resetFlag = true;
+              setTimeout(() => {
+                this.resetFlag = false;
+              }, 100);
             })
             .catch(prettyAlert);
+          break;
+        case 'tutorials':
+          this.menu = {
+            text: 'Нажмите на нужное обучение в списке, чтобы запустить его повторно:',
+            showTutorials: true,
+            buttons: [
+              { text: 'Назад в меню', action: 'init' },
+              { text: 'Спасибо', action: 'exit', exit: true },
+            ],
+          };
           break;
         case 'leaveGame':
           await api.action
@@ -349,8 +321,6 @@ export default {
             })
             .catch(prettyAlert);
           break;
-        default:
-          this.menu = action;
       }
     },
     showTutorial({ tutorial, code, simple = true }) {
@@ -428,6 +398,7 @@ export default {
   background-size: contain;
   border: 4px solid #f4e205;
 }
+
 .helper-guru {
   position: fixed;
   z-index: 10000 !important;
@@ -439,7 +410,7 @@ export default {
   font-size: 14px;
   transform-origin: left bottom;
 
-  > .alert {
+  >.alert {
     position: absolute;
     bottom: 110%;
     border: 4px solid #f4e205;
@@ -462,7 +433,7 @@ export default {
       background-size: 30px;
     }
 
-    > .close {
+    >.close {
       position: absolute;
       right: -10px;
       top: -10px;
@@ -478,7 +449,7 @@ export default {
       }
     }
 
-    > .show-hide {
+    >.show-hide {
       position: absolute;
       right: 15px;
       top: -10px;
@@ -495,40 +466,48 @@ export default {
   &.scale-1 {
     scale: 0.8;
   }
+
   &.scale-2 {
     scale: 1;
   }
+
   &.scale-3 {
     scale: 1.5;
   }
+
   &.scale-4 {
     scale: 2;
   }
+
   &.scale-5 {
     scale: 2.5;
   }
 }
+
 .mobile-view .helper-guru {
   scale: 0.6;
 
-  > .alert {
+  >.alert {
     padding: 10px 10px 10px 50px;
   }
 }
+
 .helper.in-game .helper-guru {
   top: 20px;
   bottom: auto;
   transform-origin: left top;
 
-  > .alert {
+  >.alert {
     top: 110%;
     bottom: auto;
   }
 }
-.helper.dialog-active > .helper-guru,
-.helper.dialog-active > .helper-link {
+
+.helper.dialog-active>.helper-guru,
+.helper.dialog-active>.helper-link {
   display: none;
 }
+
 .helper.dialog-hidden {
   display: none;
 }
@@ -542,9 +521,11 @@ export default {
   bottom: 100px;
   max-width: 50%;
 }
+
 .mobile-view .helper-menu {
   bottom: 70px;
 }
+
 .mobile-view.portrait-view .helper-menu {
   max-width: 100%;
 }
@@ -552,61 +533,60 @@ export default {
 #lobby .helper-menu {
   transform-origin: left bottom;
 }
+
 #game .helper-menu {
   transform-origin: left top;
   top: 20px;
   bottom: auto;
 }
+
 .helper-menu.scale-1 {
   scale: 0.8;
 }
+
 .helper-menu.scale-2 {
   scale: 1;
   bottom: 140px;
 }
+
 .helper-menu.scale-3 {
   scale: 1.5;
   bottom: 200px;
 }
+
 .helper-menu.scale-4 {
   scale: 2;
   bottom: 250px;
 }
+
 .helper-menu.scale-5 {
   scale: 2.5;
   bottom: 380px;
 }
+
 .mobile-view .helper-menu {
   scale: 1;
   left: 0px;
 }
+
 .helper.in-game .helper-menu {
   left: 0px;
   right: auto;
 }
 
-.helper-menu > .content {
-  display: flex;
+.helper-menu>.content>.tutorials {
+  margin-bottom: 0px;
+}
 
-  .text {
-    width: 100%;
-    text-align: left;
-  }
+.helper-menu>.content>.tutorials>* {
+  cursor: pointer;
+  padding: 0px 20px;
+  text-align: left;
+  padding-bottom: 6px;
+}
 
-  .list {
-    margin-bottom: 0px;
-
-    > * {
-      cursor: pointer;
-      padding: 0px 20px;
-      text-align: left;
-      padding-bottom: 6px;
-
-      &:hover {
-        opacity: 0.7;
-      }
-    }
-  }
+.helper-menu>.content>.tutorials>*:hover {
+  opacity: 0.7;
 }
 
 .helper.super-pos::after {
@@ -631,19 +611,24 @@ export default {
   &.scale-1 {
     scale: 0.8;
   }
+
   &.scale-2 {
     scale: 1;
   }
+
   &.scale-3 {
-    scale: 1.5;
+    scale: 1.2;
   }
+
   &.scale-4 {
     scale: 2;
   }
+
   &.scale-5 {
     scale: 2.5;
   }
 }
+
 .helper.super-pos .helper-dialog {
   position: fixed;
   top: 50%;
@@ -653,29 +638,58 @@ export default {
   &.scale-1 {
     transform: translate(-60%, -60%);
   }
-  &.scale-3 {
-    transform: translate(-30%, -30%);
+
+  &.scale-2 {
+    transform: translate(-50%, -50%);
   }
+
+  &.scale-3 {
+    transform: translate(-40%, -40%);
+  }
+
   &.scale-4 {
     transform: translate(-25%, -25%);
   }
+
   &.scale-5 {
     transform: translate(-20%, -20%);
   }
+
+  .content {
+    padding-right: 20px;
+    align-items: center;
+
+    .img {
+      width: 100%;
+      height: 80%;
+
+      img {
+        max-width: 100%;
+        height: 100%;
+      }
+    }
+
+    &.nowrap {
+      flex-wrap: wrap;
+    }
+  }
+
 }
 
 .mobile-view .helper-dialog {
   scale: 1;
 }
+
 .mobile-view .helper.super-pos .helper-dialog {
   transform: translate(-50%, -50%);
 }
 
-.helper.dialog-active > .helper-dialog {
+.helper.dialog-active>.helper-dialog {
   display: flex;
 }
-.helper-dialog > .content,
-.helper-menu > .content {
+
+.helper-dialog>.content,
+.helper-menu>.content {
   width: 100%;
   margin: 30px;
   min-height: 100px;
@@ -689,25 +703,29 @@ export default {
   display: flex;
   flex-wrap: wrap;
 }
-.mobile-view .helper-dialog > .content,
-.mobile-view .helper-menu > .content {
+
+.mobile-view .helper-dialog>.content,
+.mobile-view .helper-menu>.content {
   font-size: 10px;
   padding: 10px 20px 14px 10px;
   min-height: 40px;
   background: black;
 }
-.helper-dialog > .content.nowrap,
-.helper-menu > .content.nowrap {
+
+.helper-dialog>.content.nowrap,
+.helper-menu>.content.nowrap {
   flex-wrap: nowrap;
 }
-.helper-menu > .content {
+
+.helper-menu>.content {
   min-height: 50px;
 }
+
 .mobile-view.landscape-view .helper-dialog {
   max-width: 50%;
 }
 
-.helper-dialog > .content > .text {
+.helper-dialog>.content>.text {
   width: 100%;
 
   a {
@@ -716,8 +734,8 @@ export default {
   }
 }
 
-.helper-dialog > .content > .controls,
-.helper-menu > .content > .controls {
+.helper-dialog>.content>.controls,
+.helper-menu>.content>.controls {
   position: absolute;
   bottom: 6px;
   left: 0px;
@@ -725,14 +743,16 @@ export default {
   display: flex;
   justify-content: center;
 }
-.helper-dialog > .content > .controls.big,
-.helper-menu > .content > .controls.big {
+
+.helper-dialog>.content>.controls.big,
+.helper-menu>.content>.controls.big {
   top: 100%;
   flex-wrap: wrap;
   margin-top: -40px;
 }
-.helper-dialog > .content > .controls > button,
-.helper-menu > .content > .controls > button {
+
+.helper-dialog>.content>.controls>button,
+.helper-menu>.content>.controls>button {
   border-color: #f4e205;
   color: #f4e205;
   background-image: url(@/assets/clear-black-back.png);
@@ -742,26 +762,29 @@ export default {
   cursor: pointer;
 }
 
-.mobile-view .helper-dialog > .content > .controls > button,
-.mobile-view .helper-menu > .content > .controls > button {
+.mobile-view .helper-dialog>.content>.controls>button,
+.mobile-view .helper-menu>.content>.controls>button {
   padding: 4px 10px;
   font-size: 10px;
 }
 
-.helper-dialog > .content > .controls.big > button,
-.helper-menu > .content > .controls.big > button {
+.helper-dialog>.content>.controls.big>button,
+.helper-menu>.content>.controls.big>button {
   width: 60%;
 }
-.helper-dialog > .content > .controls > button:hover,
-.helper-menu > .content > .controls > button:hover {
+
+.helper-dialog>.content>.controls>button:hover,
+.helper-menu>.content>.controls>button:hover {
   color: white;
 }
-.helper-dialog > .content > .controls.big > button > svg,
-.helper-menu > .content > .controls.big > button > svg {
+
+.helper-dialog>.content>.controls.big>button>svg,
+.helper-menu>.content>.controls.big>button>svg {
   margin-left: 4px;
 }
-.helper-dialog > .helper-avatar,
-.helper-menu > .helper-avatar {
+
+.helper-dialog>.helper-avatar,
+.helper-menu>.helper-avatar {
   position: absolute;
   z-index: 10001 !important;
   border-radius: 50%;
@@ -771,8 +794,9 @@ export default {
   width: 64px;
   height: 64px;
 }
-.mobile-view .helper-dialog > .helper-avatar,
-.mobile-view .helper-menu > .helper-avatar {
+
+.mobile-view .helper-dialog>.helper-avatar,
+.mobile-view .helper-menu>.helper-avatar {
   width: 40px;
   height: 40px;
 }
@@ -787,11 +811,13 @@ body[tutorial-active] #app:after {
   left: 0px;
   background-image: url(@/assets/clear-grey-back.png);
 }
+
 .tutorial-active {
   z-index: 10000 !important;
   position: relative;
   box-shadow: 0 0 100px 10px #f4e205;
 }
+
 .tutorial-active.rounded {
   box-shadow: 0 0 20px 20px #f4e205;
   border-radius: 50%;
@@ -802,23 +828,27 @@ body[tutorial-active] #app:after {
   display: flex;
   justify-content: center;
 }
+
 .helper.fullscreen .helper-dialog {
   width: auto !important;
 }
 
 .helper-link {
   position: fixed;
-  width: 50px;
-  height: 50px;
+  width: 30px;
+  height: 30px;
   margin-left: -25px;
   margin-top: -25px;
   z-index: 2;
   cursor: pointer;
   box-shadow: 0 0 10px 10px #f4e205;
+  border: 1px solid #f4e205;
 }
+
 .helper-link:hover {
   opacity: 0.7;
 }
+
 .mobile-view .helper-link {
   width: 30px;
   height: 30px;
