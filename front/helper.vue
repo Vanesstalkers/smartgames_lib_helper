@@ -1,5 +1,5 @@
 <template>
-  <div v-if="!resetFlag" :class="['helper', inGame ? 'in-game' : '', ...helperClass]">
+  <div v-if="!resetFlag" :class="['helper', inGame ? 'in-game' : '', ...helperClass]" @change="handleChange">
     <div v-for="link in filledHelperLinks" :key="link.code" :class="['helper-link', 'helper-avatar', link.customClass]"
       :style="{
         left: `${link.clientRect.left + (link.pos.left ? 0 : link.clientRect.width)}px`,
@@ -22,19 +22,17 @@
         <div class="text">
           {{ menu.text }}
         </div>
-
-        <ul v-if="menu.showTutorials && inGame" class="tutorials">
-          <li v-on:click.stop="action({ tutorial: 'game-tutorial-start' })">Стартовое приветствие игры</li>
-          <li v-on:click.stop="action({ tutorial: 'game-tutorial-gameControls' })">Управление игровым полем</li>
-        </ul>
-        <ul v-if="menu.showTutorials && !inGame" class="tutorials">
-          <li v-on:click.stop="action({ tutorial: 'lobby-tutorial-start' })">Стартовое приветствие</li>
-          <li v-on:click.stop="action({ tutorial: 'lobby-tutorial-menuGame' })">Игровая комната</li>
+        <div v-if="menu.html" v-html="menu.html(game)"></div>
+        <ul v-if="menu.showList?.length" class="list">
+          <li v-for="(item, idx) in menu.showList.filter(item => item)" :key="'showList-' + idx"
+            v-on:click.stop="action(item.action)">
+            {{ item.title }}
+          </li>
         </ul>
 
         <div v-if="menu.buttons" :class="['controls', menu.bigControls ? 'big' : '']">
-          <button v-for="button in menu.buttons" :key="button.text"
-            v-on:click.stop="menuAction({ action: button.action })">
+          <button v-for="button in menu.buttons.filter(b => b)" :key="button.text"
+            v-on:click.stop="menuAction({ action: button.action })" :style="button.style || {}">
             {{ button.text }}
             <font-awesome-icon v-if="button.exit" :icon="['far', 'circle-xmark']" size="lg" style="color: #f4e205" />
             <font-awesome-icon v-if="button.action === 'leaveGame'" :icon="['fas', 'right-from-bracket']" size="lg"
@@ -43,11 +41,13 @@
         </div>
       </div>
     </div>
-    <helper-dialog :dialogClassMap="dialogClassMap" :dialogStyle="dialogStyle" :action="action" />
+    <helper-dialog :dialogClassMap="dialogClassMap" :dialogStyle="dialogStyle" :action="action"
+      :inputData="inputData" />
   </div>
 </template>
 
 <script>
+import { inject } from 'vue';
 import helperDialog from './components/dialog.vue';
 
 export default {
@@ -58,6 +58,7 @@ export default {
   props: {
     inGame: Boolean,
     showProfile: Function,
+    defaultMenu: Object,
   },
   data() {
     return {
@@ -73,6 +74,7 @@ export default {
       dialogStyle: {},
       dialogClassMap: {},
       resetFlag: false,
+      inputData: {},
     };
   },
   watch: {
@@ -83,9 +85,15 @@ export default {
       this.update();
     },
   },
+  setup() {
+    return inject('gameGlobals');
+  },
   computed: {
     state() {
       return this.$root.state || {};
+    },
+    game() {
+      return this.getGame();
     },
     helperData() {
       return this.state.store.user?.[this.state.currentUser]?.helper || {};
@@ -236,7 +244,11 @@ export default {
         let actionsData = {};
         if (actions) {
           if (actions[action]) {
-            actionsData = (await new Function('return ' + actions[action])()(this)) || {};
+            if (typeof actions[action] === 'string') {
+              actionsData = (await new Function('return ' + actions[action])()(this.inputData, this)) || {};
+            } else {
+              actionsData = await actions[action](this.inputData, this);
+            }
             const { exit = true } = actionsData;
             if (exit) action = 'exit';
           }
@@ -252,31 +264,11 @@ export default {
       }
     },
     async initMenu() {
-      if (this.inGame) {
-        this.menu = {
-          text: 'Чем могу помочь?',
-          bigControls: true,
-          buttons: [
-            { text: 'Выйти из игры', action: 'leaveGame' },
-            { text: 'Покажи доступные обучения', action: 'tutorials' },
-            { text: 'Активировать подсказки', action: 'restoreLinks' },
-            { text: 'Спасибо, ничего не нужно', action: 'exit', exit: true },
-          ],
-        };
-      } else {
-        this.menu = {
-          text: 'Чем могу помочь?',
-          bigControls: true,
-          buttons: [
-            { text: 'Открой мой профиль', action: 'profile' },
-            { text: 'Активировать подсказки', action: 'restoreLinks' },
-            { text: 'Покажи доступные обучения', action: 'tutorials' },
-            { text: 'Спасибо, ничего не нужно', action: 'exit', exit: true },
-          ],
-        };
-      }
+      this.menu = this.defaultMenu;
     },
     async menuAction({ action }) {
+      if (typeof action === 'function') return await action.call(this);
+
       switch (action) {
         case 'exit':
           this.menu = null;
@@ -284,43 +276,8 @@ export default {
         case 'init':
           this.initMenu();
           break;
-        case 'profile':
-          this.menu = null;
-          this.showProfile();
-          break;
-        case 'restoreLinks':
-          await api.action
-            .call({
-              path: 'helper.api.restoreLinks',
-              args: [{ inGame: this.inGame }],
-            })
-            .then((data) => {
-              this.menu = null;
-              this.resetFlag = true;
-              setTimeout(() => {
-                this.resetFlag = false;
-              }, 100);
-            })
-            .catch(prettyAlert);
-          break;
-        case 'tutorials':
-          this.menu = {
-            text: 'Нажмите на нужное обучение в списке, чтобы запустить его повторно:',
-            showTutorials: true,
-            buttons: [
-              { text: 'Назад в меню', action: 'init' },
-              { text: 'Спасибо', action: 'exit', exit: true },
-            ],
-          };
-          break;
-        case 'leaveGame':
-          await api.action
-            .call({
-              path: 'game.api.leave',
-              args: [],
-            })
-            .catch(prettyAlert);
-          break;
+        default:
+          this.menu = action;
       }
     },
     showTutorial({ tutorial, code, simple = true }) {
@@ -347,6 +304,10 @@ export default {
         )
       );
     },
+    handleChange(event) {
+      const code = event.target.name;
+      this.inputData[code] = event.target.value;
+    },
   },
   mounted() {
     // watch не всегда ловит обновление helperData на старте
@@ -358,6 +319,8 @@ export default {
       this.hideAlert = null;
     };
     window.prettyAlert = ({ message, stack } = {}, { hideTime = 5000 } = {}) => {
+      this.menu = null;
+
       if (message === 'Forbidden') message += ` (попробуйте обновить страницу)`;
       self.alert = message;
       self.hideAlert = stack;
@@ -520,6 +483,24 @@ export default {
   left: 20px;
   bottom: 100px;
   max-width: 50%;
+
+  .input {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    align-items: start;
+
+    input {
+      color: #f4e205;
+      border-color: #f4e205;
+      text-align: center;
+      background: black;
+      border-radius: 4px;
+      font-size: 16px;
+      padding: 4px;
+      margin: 20px 0px 10px 0px;
+    }
+  }
 }
 
 .mobile-view .helper-menu {
@@ -574,9 +555,8 @@ export default {
   right: auto;
 }
 
-.helper-menu>.content>.tutorials {
-  margin-bottom: 0px;
-}
+.helper-menu>.content {
+  display: flex;
 
 .helper-menu>.content>.tutorials>* {
   cursor: pointer;
@@ -585,8 +565,20 @@ export default {
   padding-bottom: 6px;
 }
 
-.helper-menu>.content>.tutorials>*:hover {
-  opacity: 0.7;
+  .list {
+    margin-bottom: 0px;
+
+    >* {
+      cursor: pointer;
+      padding: 0px 20px;
+      text-align: left;
+      padding-bottom: 6px;
+
+      &:hover {
+        opacity: 0.7;
+      }
+    }
+  }
 }
 
 .helper.super-pos::after {
