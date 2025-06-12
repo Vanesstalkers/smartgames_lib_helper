@@ -18,7 +18,7 @@
         </div>
       </div>
     </div>
-    <div v-if="menu" :class="['helper-menu', `scale-${state.guiScale}`]">
+    <div v-if="menu" :class="['helper-menu', `scale-${state.guiScale}`, menu.bigControls ? 'big-controls' : '']">
       <div class="helper-avatar" />
       <div class="content">
         <div class="text">
@@ -32,7 +32,7 @@
           </li>
         </ul>
 
-        <div v-if="menu.buttons" :class="['controls', menu.bigControls ? 'big' : '']">
+        <div v-if="menu.buttons" class='controls'>
           <button v-for="button in menu.buttons.filter(b => b)" :key="button.text"
             v-on:click.stop="menuAction({ action: button.action })" :style="button.style || {}">
             {{ button.text }}
@@ -407,7 +407,7 @@ export default {
       width: 30px;
       height: 30px;
       background-image: url(@/assets/alert.png);
-      background-size: 30px; 
+      background-size: 30px;
     }
 
     >.close {
@@ -500,7 +500,7 @@ export default {
   z-index: 10000 !important;
   width: 600px;
   left: 20px;
-  bottom: 100px;
+  bottom: 20px;
   max-width: 50%;
 
   .input {
@@ -542,26 +542,42 @@ export default {
 
 .helper-menu.scale-1 {
   scale: 0.8;
+
+  &.big-controls {
+    bottom: 120px;
+  }
 }
 
 .helper-menu.scale-2 {
   scale: 1;
-  bottom: 140px;
+
+  &.big-controls {
+    bottom: 140px;
+  }
 }
 
 .helper-menu.scale-3 {
   scale: 1.5;
-  bottom: 200px;
+
+  &.big-controls {
+    bottom: 200px;
+  }
 }
 
 .helper-menu.scale-4 {
   scale: 2;
-  bottom: 250px;
+
+  &.big-controls {
+    bottom: 260px;
+  }
 }
 
 .helper-menu.scale-5 {
   scale: 2.5;
-  bottom: 380px;
+
+  &.big-controls {
+    bottom: 380px;
+  }
 }
 
 .mobile-view .helper-menu {
@@ -753,8 +769,7 @@ export default {
   justify-content: center;
 }
 
-.helper-dialog>.content>.controls.big,
-.helper-menu>.content>.controls.big {
+.helper-menu.big-controls>.content>.controls {
   top: 100%;
   flex-wrap: wrap;
   margin-top: -40px;
@@ -777,8 +792,7 @@ export default {
   font-size: 10px;
 }
 
-.helper-dialog>.content>.controls.big>button,
-.helper-menu>.content>.controls.big>button {
+.helper-menu.big-controls>.content>.controls>button {
   width: 60%;
 }
 
@@ -787,8 +801,7 @@ export default {
   color: white;
 }
 
-.helper-dialog>.content>.controls.big>button>svg,
-.helper-menu>.content>.controls.big>button>svg {
+.helper-menu.big-controls>.content>.controls>button>svg {
   margin-left: 4px;
 }
 
