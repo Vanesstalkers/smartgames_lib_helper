@@ -43,13 +43,12 @@
         </div>
       </div>
     </div>
-    <helper-dialog :dialogClassMap="dialogClassMap" :dialogStyle="dialogStyle" :action="action"
+    <helper-dialog :inGame="inGame" :dialogClassMap="dialogClassMap" :dialogStyle="dialogStyle" :action="action"
       :inputData="inputData" />
   </div>
 </template>
 
 <script>
-import { inject } from 'vue';
 import helperDialog from './components/dialog.vue';
 
 export default {
@@ -90,15 +89,12 @@ export default {
       this.menuAction({ action });
     },
   },
-  setup() {
-    return inject('gameGlobals');
-  },
   computed: {
     state() {
       return this.$root.state || {};
     },
     game() {
-      return this.getGame();
+      return this.inGame ? this.getGame() : {};
     },
     helperData() {
       return this.state.store.user?.[this.state.currentUser]?.helper || {};
@@ -313,6 +309,11 @@ export default {
     handleChange(event) {
       const code = event.target.name;
       this.inputData[code] = event.target.value;
+    },
+    getGame(gameId) {
+      if (!this.inGame) return {};
+      if (!gameId) gameId = gameState.gameId;
+      return this.$root.state.store.game?.[gameId] || {};
     },
   },
   mounted() {

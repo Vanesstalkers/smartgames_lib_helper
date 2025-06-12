@@ -9,7 +9,8 @@
       <div v-if="helperData.text" class="text">{{ helperData.text }}</div>
       <div v-if="helperData.html" v-html="helperDataHtml()"></div>
       <div v-if="helperData.input" class="input">
-        <input :value="helperData.input.value" :placeholder="helperData.input.placeholder" :name="helperData.input.name" />
+        <input :value="helperData.input.value" :placeholder="helperData.input.placeholder"
+          :name="helperData.input.name" />
       </div>
       <div class="video" />
       <div v-if="helperData.buttons" class="controls">
@@ -25,12 +26,12 @@
 </template>
 
 <script>
-import { inject } from 'vue';
 
 export default {
   name: 'helper',
   components: {},
   props: {
+    inGame: Boolean,
     customData: Object,
     dialogClassMap: {
       type: Object,
@@ -50,15 +51,9 @@ export default {
     return {};
   },
   watch: {},
-  setup() {
-    return inject('gameGlobals');
-  },
   computed: {
     state() {
       return this.$root.state || {};
-    },
-    game() {
-      return this.getGame();
     },
     helperData() {
       return this.customData || this.state.store.user?.[this.state.currentUser]?.helper || {};
@@ -70,12 +65,18 @@ export default {
     },
   },
   methods: {
+    getGame(gameId) {
+      if (!this.inGame) return {};
+      if (!gameId) gameId = gameState.gameId;
+      return this.$root.state.store.game?.[gameId] || {};
+    },
     helperDataHtml() {
+      const game = this.getGame();
       let html;
       if (typeof this.helperData.html === 'string') {
-        html = new Function(`return ${this.helperData.html}`)()(this.game);
+        html = new Function(`return ${this.helperData.html}`)()(game);
       } else {
-        html = this.helperData.html(this.game);
+        html = this.helperData.html(game);
       }
       return html;
     },
@@ -100,6 +101,10 @@ export default {
       font-size: 16px;
       padding: 4px;
     }
+  }
+
+  a {
+    color: lightblue;
   }
 }
 </style>
