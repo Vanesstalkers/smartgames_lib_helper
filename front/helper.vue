@@ -7,13 +7,15 @@
       }" v-on:click.stop="showTutorial(link)" />
 
     <div v-if="!menu" :class="['helper-guru', 'helper-avatar', `scale-${state.guiScale}`]" v-on:click.stop="initMenu">
-      <div v-if="alert" class="alert" v-on:click.stop="">
-        {{ alert }}
-        <div v-if="showHideAlert">
-          <small>{{ hideAlert }}</small>
+      <div v-if="alertList.length > 0" class="alert-list">
+        <div v-for="(alert, index) in alertList" :key="index" class="alert" v-on:click.stop="">
+          {{ alert }}
+          <div v-if="showHideAlert">
+            <small>{{ hideAlert }}</small>
+          </div>
+          <!-- <div v-if="hideAlert" class="show-hide" v-on:click.stop="showHideAlert = true" /> -->
+          <div class="close" v-on:click.stop="alertList = alertList.filter((_, i) => i !== index)" />
         </div>
-        <!-- <div v-if="hideAlert" class="show-hide" v-on:click.stop="showHideAlert = true" /> -->
-        <div class="close" v-on:click.stop="alert = null" />
       </div>
     </div>
     <div v-if="menu" :class="['helper-menu', `scale-${state.guiScale}`]">
@@ -63,7 +65,7 @@ export default {
   data() {
     return {
       timeoutId: null,
-      alert: null,
+      alertList: [],
       hideAlert: null,
       showHideAlert: false,
       mutationObserver: null,
@@ -319,21 +321,25 @@ export default {
 
     const self = this;
     window.prettyAlertClear = () => {
-      this.alert = null;
+      this.alertList = [];
       this.hideAlert = null;
     };
     window.prettyAlert = ({ message, stack } = {}, { hideTime = 5000 } = {}) => {
+      if (this.alertList.includes(message)) return;
+
       this.menu = null;
 
       if (message === 'Forbidden') message += ` (попробуйте обновить страницу)`;
-      self.alert = message;
+      this.alertList.push(message);
       self.hideAlert = stack;
       if (self.hideAlert) this.showHideAlert = false;
 
       if (hideTime > 0) {
         setTimeout(() => {
-          self.alert = null;
-          self.hideAlert = null;
+          this.alertList = this.alertList.filter(alert => alert !== message);
+          if (this.alertList.length === 0) {
+            self.hideAlert = null;
+          }
         }, hideTime);
       }
     };
@@ -377,9 +383,8 @@ export default {
   font-size: 14px;
   transform-origin: left bottom;
 
-  >.alert {
-    position: absolute;
-    bottom: 110%;
+  .alert {
+    position: relative;
     border: 4px solid #f4e205;
     background-image: url(@/assets/clear-black-back.png);
     color: white;
@@ -388,6 +393,11 @@ export default {
     min-width: 300px;
     text-align: center;
     cursor: default;
+    margin-bottom: 10px;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
 
     &::before {
       content: '';
@@ -397,7 +407,7 @@ export default {
       width: 30px;
       height: 30px;
       background-image: url(@/assets/alert.png);
-      background-size: 30px;
+      background-size: 30px; 
     }
 
     >.close {
@@ -454,8 +464,12 @@ export default {
 .mobile-view .helper-guru {
   scale: 0.6;
 
-  >.alert {
+  .alert {
     padding: 10px 10px 10px 50px;
+
+    &::before {
+      top: 10px;
+    }
   }
 }
 
@@ -464,7 +478,8 @@ export default {
   bottom: auto;
   transform-origin: left top;
 
-  >.alert {
+  .alert-list {
+    position: absolute;
     top: 110%;
     bottom: auto;
   }
