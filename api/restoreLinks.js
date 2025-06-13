@@ -10,7 +10,8 @@ async (context, { inGame = false }) => {
     updatedHelperLinks[key] = { used: null };
   }
 
-  user.set({ helperLinks: updatedHelperLinks }, { removeEmptyObject: true });
+  let useTutorialLinkExtraTimeCount = (user.useTutorialLinkExtraTimeCount || 0) + 1;
+  user.set({ helperLinks: updatedHelperLinks, useTutorialLinkExtraTimeCount }, { removeEmptyObject: true });
   await user.saveChanges({ saveToLobbyUser: true });
 
   return { status: 'ok' };

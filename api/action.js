@@ -6,10 +6,10 @@ async (context, { action, step, tutorial: tutorialName, usedLink, isMobile }) =>
 
   if (tutorialName) {
     if (currentTutorial.active) throw new Error('Другое обучение уже активно в настоящий момент');
-    
+
     const tutorial = lib.helper.getTutorial(tutorialName);
-    const helper = step ? Object.entries(tutorial).find(([key]) => key === step)[1] 
-                       : Object.values(tutorial).find(({ initialStep }) => initialStep);
+    const helper = step ? Object.entries(tutorial).find(([key]) => key === step)[1]
+      : Object.values(tutorial).find(({ initialStep }) => initialStep);
     if (!helper) throw new Error('Tutorial initial step not found');
 
     const nextStep = prepareStep(helper, isMobile);
@@ -29,7 +29,7 @@ async (context, { action, step, tutorial: tutorialName, usedLink, isMobile }) =>
     } else {
       const tutorial = lib.helper.getTutorial(currentTutorial.active);
       const nextStep = prepareStep(tutorial[step], isMobile);
-      
+
       if (nextStep) {
         user.set({ helper: nextStep }, { reset: ['helper', 'helper.actions'] }); // reset обязателен, так как набор ключей в каждом helper-step может быть разный
         user.set({ currentTutorial: { step } });
@@ -46,13 +46,13 @@ async (context, { action, step, tutorial: tutorialName, usedLink, isMobile }) =>
   }
 
   await user.saveChanges();
-  const hasGlobalChanges = Object.keys(globalTutorialData.finishedTutorials).length || 
-                          Object.keys(globalTutorialData.helperLinks).length ||
-                          globalTutorialData.helper !== undefined ||
-                          globalTutorialData.currentTutorial !== undefined;
+  const hasGlobalChanges = Object.keys(globalTutorialData.finishedTutorials).length ||
+    Object.keys(globalTutorialData.helperLinks).length ||
+    globalTutorialData.helper !== undefined ||
+    globalTutorialData.currentTutorial !== undefined;
 
   if (hasGlobalChanges) {
-    user.set({ ...globalTutorialData });
+    user.set({ ...globalTutorialData }, { removeEmptyObject: true }); // из-за прдустановленного globalTutorialData.finishedTutorials может уйи пустой объект и перетереться его содержимое в БД
     await user.saveChanges({ saveToLobbyUser: true });
   }
 
