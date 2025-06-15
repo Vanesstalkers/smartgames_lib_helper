@@ -21,9 +21,7 @@
     <div v-if="menu" :class="['helper-menu', `scale-${state.guiScale}`, menu.bigControls ? 'big-controls' : '']">
       <div class="helper-avatar" />
       <div class="content">
-        <div class="text">
-          {{ menu.text }}
-        </div>
+        <div class="text" v-html="menu.text" />
         <div v-if="menu.html" v-html="menu.html(game)"></div>
         <ul v-if="menu.showList?.length" class="list">
           <li v-for="(item, idx) in menu.showList.filter(item => item)" :key="'showList-' + idx"
@@ -111,14 +109,13 @@ export default {
       );
     },
     filledHelperLinks() {
-      return Object.entries(this.helperLinks)
+      const result = Object.entries(this.helperLinks)
         .map(([code, link]) => ({
-          code,
-          pos: {},
-          ...link,
+          ...{ code, pos: {}, ...link },
           clientRect: this.helperLinksBounds[code],
         }))
         .filter(({ clientRect }) => clientRect);
+      return result;
     },
     helperClass() {
       return Object.entries(this.helperClassMap)
@@ -140,7 +137,7 @@ export default {
         text,
         html,
         img,
-        active,
+        active = [],
         pos,
         superPos = false,
         fullscreen = false,
@@ -186,7 +183,8 @@ export default {
       let actionsData = {};
       if (actions) {
         if (actions.before) {
-          actionsData = new Function('return ' + actions.before)()(this) || {};
+          const context = { $root: this.$root.$el, state: this.state };
+          actionsData = new Function('return ' + actions.before)()(context) || {};
         }
       }
       const { skipStep } = actionsData;
@@ -200,24 +198,35 @@ export default {
       document.querySelectorAll('.tutorial-active').forEach((el) => {
         el.classList.remove('tutorial-active');
       });
-      if (active) {
-        if (typeof active === 'string') active = { selector: active };
-        let { selector, update, customClass, style } = active;
-
-        this.$nextTick(() => {
-          // если в beforeAction проводились манипуляции с dom, то селектор отработает только в nextTick
-          document.querySelectorAll(selector).forEach((el) => {
-            if (el) {
-              el.classList.add('tutorial-active');
-              if (customClass) el.classList.add(customClass);
-              if (update) {
-                el.addEventListener('click', () => {
-                  this.action(update);
-                });
+      if (active.length) {
+        for (let { selector, update, customClass, css } of active) {
+          this.$nextTick(() => {
+            // если в beforeAction проводились манипуляции с dom, то селектор отработает только в nextTick
+            document.querySelectorAll(selector).forEach((el) => {
+              if (el) {
+                el.classList.add('tutorial-active');
+                if (css) {
+                  // Сохраняем текущие стили перед перезаписью
+                  if (!el._originalStyles) {
+                    el._originalStyles = {};
+                    const computedStyle = window.getComputedStyle(el);
+                    Object.entries(css).forEach(([origKey, val]) => {
+                      const key = (origKey in el.style || el.style.hasOwnProperty(origKey)) ? origKey : this.convertToFirefoxStyle(origKey);
+                      el._originalStyles[key] = computedStyle.getPropertyValue(key);
+                      el.style[key] = val;
+                    });
+                  }
+                }
+                if (customClass) el.classList.add(customClass);
+                if (update) {
+                  el.addEventListener('click', () => {
+                    this.action(update);
+                  });
+                }
               }
-            }
+            });
           });
-        });
+        }
       }
 
       if (this.timeoutId) {
@@ -295,16 +304,37 @@ export default {
       return;
     },
     updateLinksCoordinates() {
-      this.$set(
-        this,
-        'helperLinksBounds',
-        Object.fromEntries(
-          this.helperLinksEntries.map(([code, link]) => [
-            code,
-            this.$root.$el.querySelector(link.selector)?.getBoundingClientRect() || null,
-          ])
-        )
+      const helperLinksBounds = Object.fromEntries(
+        this.helperLinksEntries.map(([code, link]) => {
+          const element = this.$root.$el.querySelector(link.selector);
+          const isVisible = element ? this.isElementVisible(element) : false;
+          return [code, isVisible ? element?.getBoundingClientRect() : null];
+        })
       );
+      this.$set(this, 'helperLinksBounds', helperLinksBounds);
+    },
+    isElementVisible(element) {
+      if (!element) return false;
+
+      const style = window.getComputedStyle(element);
+      if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') {
+        return false;
+      }
+
+      const rect = element.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0) {
+        return false;
+      }
+
+      // Проверяем, находится ли элемент в области видимости
+      const isInViewport = (
+        rect.top >= 0 &&
+        rect.left >= 0 &&
+        rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
+        rect.right <= (window.innerWidth || document.documentElement.clientWidth)
+      );
+
+      return isInViewport;
     },
     handleChange(event) {
       const code = event.target.name;
@@ -314,6 +344,14 @@ export default {
       if (!this.inGame) return {};
       if (!gameId) gameId = gameState.gameId;
       return this.$root.state.store.game?.[gameId] || {};
+    },
+    convertToFirefoxStyle(css) {
+      return Object.entries(css).reduce((acc, [key, value]) => {
+        // Конвертируем camelCase в kebab-case
+        const kebabKey = key.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
+        acc[kebabKey] = value;
+        return acc;
+      }, {});
     },
   },
   mounted() {
@@ -346,6 +384,24 @@ export default {
     };
 
     this.mutationObserver = new MutationObserver(function (mutationsList, observer) {
+      mutationsList.forEach(mutation => {
+        if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+          const el = mutation.target;
+          const oldClasses = mutation.oldValue || '';
+          const newClasses = el.className;
+
+          // Если класс tutorial-active был удален
+          if (oldClasses.includes('tutorial-active') && !newClasses.includes('tutorial-active')) {
+            // Восстанавливаем сохраненные стили
+            if (el._originalStyles) {
+              Object.keys(el._originalStyles).forEach(key => {
+                el.style[key] = el._originalStyles[key];
+              });
+              delete el._originalStyles;
+            }
+          }
+        }
+      });
       self.updateLinksCoordinates();
     });
     this.mutationObserver.observe(document.querySelector('body'), {
@@ -718,11 +774,9 @@ export default {
 .helper-menu>.content {
   width: 100%;
   margin: 30px;
-  min-height: 100px;
   border: 2px solid #f4e205;
   background-image: url(@/assets/clear-black-back.png);
-  padding: 20px;
-  padding-right: 60px;
+  padding: 20px 60px 40px 20px;
   white-space: pre-wrap;
   color: #f4e205;
   overflow: auto;
@@ -814,8 +868,8 @@ export default {
   border: 3px solid #f4e205;
   right: 10px;
   top: 10px;
-  width: 64px;
-  height: 64px;
+  width: 48px;
+  height: 48px;
 }
 
 .mobile-view .helper-dialog>.helper-avatar,
@@ -862,7 +916,7 @@ body[tutorial-active] #app:after {
   height: 30px;
   margin-left: -25px;
   margin-top: -25px;
-  z-index: 2;
+  z-index: 99;
   cursor: pointer;
   box-shadow: 0 0 10px 10px #f4e205;
   border: 1px solid #f4e205;
