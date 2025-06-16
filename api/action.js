@@ -62,6 +62,12 @@ async (context, { action, step, tutorial: tutorialName, usedLink, isMobile }) =>
 function prepareStep(helper, isMobile) {
   const { _prepare: prepareStep } = helper.actions || {};
   const nextStep = lib.utils.structuredClone(helper, { convertFuncToString: true });
+  if (nextStep.active) {
+    if (!Array.isArray(nextStep.active)) nextStep.active = [nextStep.active];
+    for (const [key, val] of Object.entries(nextStep.active)) {
+      if (typeof val === 'string') nextStep.active[key] = { selector: val };
+    }
+  }
   if (prepareStep) prepareStep(nextStep, { isMobile });
   if (!nextStep.hideTime) nextStep.hideTime = null;
   return nextStep;
