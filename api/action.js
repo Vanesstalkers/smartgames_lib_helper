@@ -7,12 +7,12 @@ async (context, { action, step, tutorial: tutorialName, usedLink, isMobile }) =>
   if (tutorialName) {
     if (currentTutorial.active) throw new Error('Другое обучение уже активно в настоящий момент');
 
-    const tutorial = lib.helper.getTutorial(tutorialName);
+    const { steps: tutorial, utils = {} } = lib.helper.getTutorial(tutorialName);
     const helper = step ? Object.entries(tutorial).find(([key]) => key === step)[1]
       : Object.values(tutorial).find(({ initialStep }) => initialStep);
     if (!helper) throw new Error('Tutorial initial step not found');
 
-    const nextStep = prepareStep(helper, isMobile);
+    const nextStep = prepareStep(helper, { utils, isMobile });
     user.set({ helper: nextStep, currentTutorial: { active: tutorialName } });
 
     if (usedLink) {
@@ -27,11 +27,14 @@ async (context, { action, step, tutorial: tutorialName, usedLink, isMobile }) =>
         finishedTutorials: { [currentTutorial.active]: true }
       });
     } else {
-      const tutorial = lib.helper.getTutorial(currentTutorial.active);
-      const nextStep = prepareStep(tutorial[step], isMobile);
+      const { steps: tutorial, utils = {} } = lib.helper.getTutorial(currentTutorial.active);
+      const nextStep = prepareStep(tutorial[step], { utils, isMobile });
 
       if (nextStep) {
-        user.set({ helper: nextStep }, { reset: ['helper', 'helper.actions'] }); // reset обязателен, так как набор ключей в каждом helper-step может быть разный
+        user.set({ helper: nextStep }, {
+          reset: ['helper', 'helper.actions'], // reset обязателен, так как набор ключей в каждом helper-step может быть разный
+          removeEmptyObject: true, // делаем из-за helper.utils, который всегда одинаковый (в changes заишется как {}, что приведет к затиранию в БД)
+        });
         user.set({ currentTutorial: { step } });
       } else {
         Object.assign(globalTutorialData, {
@@ -59,10 +62,16 @@ async (context, { action, step, tutorial: tutorialName, usedLink, isMobile }) =>
   return { status: 'ok' };
 };
 
-function prepareStep(helper, isMobile) {
-  const { _prepare: prepareStep } = helper.actions || {};
-  const nextStep = lib.utils.structuredClone(helper, { convertFuncToString: true });
-  if (prepareStep) prepareStep(nextStep, { isMobile });
+function prepareStep(helper, { utils, isMobile }) {
+  const { _prepare: prepareFunc } = helper.actions || {};
+  const nextStep = lib.utils.structuredClone({ ...helper, utils }, { convertFuncToString: true });
+  if (nextStep.active) {
+    if (!Array.isArray(nextStep.active)) nextStep.active = [nextStep.active];
+    for (const [key, val] of Object.entries(nextStep.active)) {
+      if (typeof val === 'string') nextStep.active[key] = { selector: val };
+    }
+  }
+  if (prepareFunc) prepareFunc(nextStep, { isMobile });
   if (!nextStep.hideTime) nextStep.hideTime = null;
   return nextStep;
 }
