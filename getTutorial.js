@@ -7,5 +7,5 @@
     obj = lib.utils.getDeep(this, realPath);
   }
   if (!obj?.steps) throw new Error(`Tutorial "${formattedPath}" not found`);
-  return obj.steps;
+  return obj;
 };

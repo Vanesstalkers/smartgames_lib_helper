@@ -1,12 +1,13 @@
 <template>
-  <div :class="['helper-dialog', 'scroll-off', `scale-${state.guiScale}`, ...dialogClass]" :style="dialogStyle">
+  <div :class="['helper-dialog', 'scroll-off', `scale-${state.guiScale}`, ...dialogClass]"
+    :style="dialogStyle">
     <div class="helper-avatar" />
     <div :class="['content', helperData.img && helperData.text ? 'nowrap' : '']">
       <div v-if="helperData.img" class="img">
         <img :src="helperData.img" />
       </div>
 
-      <div v-if="helperData.text" class="text">{{ helperData.text }}</div>
+      <div v-if="helperData.text" class="text" v-html="helperData.text" />
       <div v-if="helperData.html" v-html="helperDataHtml()"></div>
       <div v-if="helperData.input" class="input">
         <input :value="helperData.input.value" :placeholder="helperData.input.placeholder"
@@ -17,7 +18,7 @@
         <button v-for="button in helperData.buttons" :key="button.text" v-on:click.stop="action({ ...button })">
           <font-awesome-icon v-if="button.icon" :icon="button.icon" size="lg"
             style="color: #f4e205; padding-right: 4px" />
-          {{ button.text }}
+          <span v-html="button.text" />
           <div v-if="button.exit" class="exit-icon" />
         </button>
       </div>
@@ -104,7 +105,11 @@ export default {
   }
 
   a {
-    color: lightblue;
+    color: lightblue !important;
+  }
+
+  .text-left {
+    text-align: left;
   }
 }
 </style>
