@@ -15,10 +15,8 @@ async (context, { action, step, tutorial: tutorialName, usedLink, isMobile }) =>
     const nextStep = prepareStep(helper, { utils, isMobile });
     user.set({ helper: nextStep, currentTutorial: { active: tutorialName } });
 
-    if (usedLink) {
-      globalTutorialData.helperLinks[usedLink] = { used: true };
-      if (user.gameId) lib.store.broadcaster.publishAction(`game-${user.gameId}`, 'playerUseTutorialLink', { user });
-    }
+    if (usedLink) globalTutorialData.helperLinks[usedLink] = { used: true };
+    if (user.gameId) lib.store.broadcaster.publishAction(`game-${user.gameId}`, 'playerUseTutorial', { user, usedLink });
   } else if (currentTutorial.active) {
     if (action === 'exit') {
       Object.assign(globalTutorialData, {
