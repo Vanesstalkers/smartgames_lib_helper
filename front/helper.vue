@@ -9,11 +9,11 @@
     <div v-if="!menu" :class="['helper-guru', 'helper-avatar', `scale-${state.guiScale}`]" v-on:click.stop="initMenu">
       <div v-if="alertList.length > 0" class="alert-list">
         <div v-for="(alert, index) in alertList" :key="index" class="alert" v-on:click.stop="">
-          {{ alert }}
+          <span v-html="alert" />
           <div v-if="showHideAlert">
-            <small>{{ hideAlert }}</small>
+            <small v-html="hideAlert" />
           </div>
-          <!-- <div v-if="hideAlert" class="show-hide" v-on:click.stop="showHideAlert = true" /> -->
+          <div v-if="hideAlert" class="show-hide" v-on:click.stop="showHideAlert = true" />
           <div class="close" v-on:click.stop="alertList = alertList.filter((_, i) => i !== index)" />
         </div>
       </div>
