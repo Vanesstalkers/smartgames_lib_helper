@@ -1,5 +1,5 @@
 <template>
-  <div v-if="!resetFlag" :class="['helper', inGame ? 'in-game' : '', ...helperClass]" @change="handleChange">
+  <div v-if="!resetFlag" :class="['helper', game ? 'in-game' : '', ...helperClass]" @change="handleChange">
     <div v-for="link in filledHelperLinks" :key="link.code" :class="['helper-link', 'helper-avatar', link.customClass]"
       :style="{
         left: `${link.clientRect.left + (link.pos.left ? 0 : link.clientRect.width)}px`,
@@ -41,7 +41,7 @@
         </div>
       </div>
     </div>
-    <helper-dialog :inGame="inGame" :dialogClassMap="dialogClassMap" :dialogStyle="dialogStyle" :action="action"
+    <helper-dialog :game="game" :dialogClassMap="dialogClassMap" :dialogStyle="dialogStyle" :action="action"
       :inputData="inputData" />
   </div>
 </template>
@@ -55,7 +55,7 @@ export default {
     helperDialog,
   },
   props: {
-    inGame: Boolean,
+    game: Object,
     showProfile: Function,
     defaultMenu: Object,
   },
@@ -91,9 +91,6 @@ export default {
     state() {
       return this.$root.state || {};
     },
-    game() {
-      return this.inGame ? this.getGame() : {};
-    },
     helperData() {
       return this.state.store.user?.[this.state.currentUser]?.helper || {};
     },
@@ -105,7 +102,7 @@ export default {
     },
     helperLinksEntries() {
       return Object.entries(this.helperLinks).filter(
-        ([code, link]) => link.used !== true && link.type === (this.inGame ? 'game' : 'lobby')
+        ([code, link]) => link.used !== true && link.type === (this.game ? 'game' : 'lobby')
       );
     },
     filledHelperLinks() {
@@ -265,20 +262,24 @@ export default {
         document.body.appendChild(a);
         a.click();
       } else {
-        let { actions } = this.helperData;
+        let { actions, utils } = this.helperData;
         let actionsData = {};
 
         if (actions) {
-          if (actions[action]) {
-            if (typeof actions[action] === 'string') {
-              actionsData = (await new Function('return ' + actions[action])()(this.inputData, this)) || {};
-            } else {
-              actionsData = await actions[action](this.inputData, this);
+          if (utils) { // вспомогательные функции, вызываемые внутри actions
+            for (const [name, func] of Object.entries(utils)) {
+              if (typeof func === 'string') {
+                utils[name] = new Function('return ' + func.replace(`${name}(data)`, '(data)=>'))();
+              }
             }
-            const { exit = true } = actionsData;
-            if (exit) action = 'exit';
+          }
+
+          if (actions[action]) {
+            const context = { inputData: this.inputData, $root: this.$root.$el, state: this.state, utils };
+            actionsData = await new Function('return ' + actions[action])()(context) || {};
           }
         }
+        if (actionsData.exit) action = 'exit';
 
         await api.action
           .call({
@@ -354,11 +355,6 @@ export default {
     handleChange(event) {
       const code = event.target.name;
       this.inputData[code] = event.target.value;
-    },
-    getGame(gameId) {
-      if (!this.inGame) return {};
-      if (!gameId) gameId = gameState.gameId;
-      return this.$root.state.store.game?.[gameId] || {};
     },
     convertToFirefoxStyle(css) {
       return Object.entries(css).reduce((acc, [key, value]) => {
@@ -965,5 +961,22 @@ body[tutorial-active] #app:after {
 
 .helper.dialog-active.show-menu>.helper-menu {
   z-index: 100000 !important;
+}
+
+.tutorial-show,
+.tutorial-show-flex {
+  display: none !important;
+}
+
+.tutorial-active {
+
+  &.tutorial-show,
+  .tutorial-show {
+    display: block !important;
+  }
+
+  &.tutorial-show-flex {
+    display: flex !important;
+  }
 }
 </style>

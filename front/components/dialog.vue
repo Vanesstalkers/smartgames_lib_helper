@@ -32,7 +32,7 @@ export default {
   name: 'helper',
   components: {},
   props: {
-    inGame: Boolean,
+    game: Object,
     customData: Object,
     dialogClassMap: {
       type: Object,
@@ -66,18 +66,12 @@ export default {
     },
   },
   methods: {
-    getGame(gameId) {
-      if (!this.inGame) return {};
-      if (!gameId) gameId = gameState.gameId;
-      return this.$root.state.store.game?.[gameId] || {};
-    },
     helperDataHtml() {
-      const game = this.getGame();
       let html;
       if (typeof this.helperData.html === 'string') {
-        html = new Function(`return ${this.helperData.html}`)()(game);
+        html = new Function(`return ${this.helperData.html}`)()(this.game);
       } else {
-        html = this.helperData.html(game);
+        html = this.helperData.html(this.game);
       }
       return html;
     },
