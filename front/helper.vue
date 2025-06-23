@@ -203,7 +203,8 @@ export default {
       const { skipStep } = actionsData;
       if (skipStep) {
         this.$set(this.helperClassMap, 'dialog-hidden', true);
-        const skipButton = buttons.find((button) => button.step);
+        let skipButton = typeof skipStep === 'object' ? skipStep.goto : null;
+        if (!skipButton) skipButton = buttons.find((button) => button.step);
         this.action(skipButton);
         return;
       }
@@ -213,7 +214,7 @@ export default {
       });
 
       if (active.length) {
-        for (let { selector, update, customClass, css } of active) {
+        for (let { selector, onclick, customClass, css } of active) {
           // если в beforeAction проводились манипуляции с dom, то селектор отработает только в nextTick
           document.querySelectorAll(selector).forEach((el) => {
             if (el) {
@@ -231,11 +232,7 @@ export default {
                 }
               }
               if (customClass) el.classList.add(customClass);
-              if (update) {
-                el.addEventListener('click', () => {
-                  this.action(update);
-                });
-              }
+              if (onclick) el.addEventListener('click', () => this.action(onclick));
             }
           });
         }
@@ -276,10 +273,14 @@ export default {
 
           if (actions[action]) {
             const context = { inputData: this.inputData, $root: this.$root.$el, state: this.state, utils };
-            actionsData = await new Function('return ' + actions[action])()(context) || {};
+            if (typeof actions[action] === 'string') { // приходит с бэка
+              actionsData = await new Function('return ' + actions[action])()(context);
+            } else { // объявлено на фронте
+              actionsData = await actions[action](context);
+            }
           }
         }
-        if (actionsData.exit) action = 'exit';
+        if (actionsData?.exit) action = 'exit';
 
         await api.action
           .call({
@@ -368,6 +369,9 @@ export default {
   mounted() {
     // watch не всегда ловит обновление helperData на старте
     this.$nextTick(this.update);
+
+    // Инициируем пересчет filledHelperLinks
+    this.$nextTick(this.updateLinksCoordinates);
 
     const self = this;
     window.prettyAlertClear = () => {
@@ -794,7 +798,7 @@ export default {
   margin: 30px;
   border: 2px solid #f4e205;
   background-image: url(@/assets/clear-black-back.png);
-  padding: 20px 60px 20px 40px;
+  padding: 20px 60px 30px 40px;
   white-space: pre-wrap;
   color: #f4e205;
   overflow: auto;
@@ -806,14 +810,9 @@ export default {
 .mobile-view .helper-dialog>.content,
 .mobile-view .helper-menu>.content {
   font-size: 10px;
-  padding: 10px 20px 14px 10px;
+  padding: 10px 24px 20px 10px;
   min-height: 40px;
   background: black;
-
-  .text {
-    margin-top: -10px;
-    margin-bottom: -10px;
-  }
 }
 
 .helper-dialog>.content.nowrap,
@@ -970,8 +969,7 @@ body[tutorial-active] #app:after {
 
 .tutorial-active {
 
-  &.tutorial-show,
-  .tutorial-show {
+  &.tutorial-show {
     display: block !important;
   }
 

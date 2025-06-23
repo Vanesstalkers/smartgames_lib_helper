@@ -7,7 +7,7 @@ async (context, { inGame = false }) => {
 
   const updatedHelperLinks = {};
   for (const key of Object.keys(helperLinks)) {
-    updatedHelperLinks[key] = { used: null };
+    updatedHelperLinks[key] = { ...helperLinks[key], used: null };
   }
 
   let useTutorialLinkExtraTimeCount = (user.useTutorialLinkExtraTimeCount || 0) + 1;

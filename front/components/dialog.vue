@@ -1,13 +1,12 @@
 <template>
-  <div :class="['helper-dialog', 'scroll-off', `scale-${state.guiScale}`, ...dialogClass]"
-    :style="dialogStyle">
+  <div :class="['helper-dialog', 'scroll-off', `scale-${state.guiScale}`, ...dialogClass]" :style="dialogStyle">
     <div class="helper-avatar" />
-    <div :class="['content', helperData.img && helperData.text ? 'nowrap' : '']">
+    <div :class="['content', helperData.img && helperData.text ? 'split-img-text' : '']">
       <div v-if="helperData.img" class="img">
         <img :src="helperData.img" />
       </div>
 
-      <div v-if="helperData.text" class="text" v-html="helperData.text" />
+      <div v-if="helperData.text" class="text" v-html="helperData.text.trim()" />
       <div v-if="helperData.html" v-html="helperDataHtml()"></div>
       <div v-if="helperData.input" class="input">
         <input :value="helperData.input.value" :placeholder="helperData.input.placeholder"
@@ -81,6 +80,29 @@ export default {
 
 <style lang="scss">
 .helper-dialog {
+  .content {
+    .img {
+      img {
+        width: 100%;
+      }
+    }
+
+    &.split-img-text {
+      justify-content: space-around;
+      align-items: center;
+
+      .img {
+        width: auto;
+        max-width: calc(50% - 20px);
+      }
+
+      .text {
+        width: 50%;
+        padding-left: 20px;
+      }
+    }
+  }
+
   .input {
     display: flex;
     justify-content: center;
