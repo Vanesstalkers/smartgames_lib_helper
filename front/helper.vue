@@ -776,6 +776,18 @@ export default {
     &.nowrap {
       flex-wrap: wrap;
     }
+
+    &.split-img-text {
+      .img {
+        width: 100%;
+        max-width: none;
+      }
+
+      .text {
+        width: 100%;
+        padding-left: 0px;
+      }
+    }
   }
 
 }
