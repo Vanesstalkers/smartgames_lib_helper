@@ -32,7 +32,8 @@
 
         <div v-if="menu.buttons" class='controls'>
           <button v-for="button in menu.buttons.filter(b => b)" :key="button.text"
-            v-on:click.stop="menuAction({ action: button.action })" :style="button.style || {}">
+            v-on:click.stop="menuAction({ action: button.action })" :class="[button.customClass]"
+            :style="button.style || {}">
             {{ button.text }}
             <font-awesome-icon v-if="button.exit" :icon="['far', 'circle-xmark']" size="lg" style="color: #f4e205" />
             <font-awesome-icon v-if="button.action === 'leaveGame'" :icon="['fas', 'right-from-bracket']" size="lg"
@@ -168,10 +169,10 @@ export default {
 
       const dialogStyle = {};
       const offset = this.state.isMobile ? '0px' : '20px';
+      if (showMenu) this.$set(this.helperClassMap, 'show-menu', true);
       if (superPos) {
         document.body.setAttribute('tutorial-active', 1);
         this.$set(this.helperClassMap, 'super-pos', true);
-        if (showMenu) this.$set(this.helperClassMap, 'show-menu', true);
       } else if (fullscreen) {
         if (pos.includes('top'))
           Object.assign(dialogStyle, { top: offset, left: offset, width: '100%', height: '100%' });
