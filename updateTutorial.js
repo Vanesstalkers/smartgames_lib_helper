@@ -1,9 +1,14 @@
-async (user, { action, step, tutorial: tutorialName, usedLink, isMobile }) => {
+async (user, { action, step, tutorial: tutorialName, usedLink }) => {
   const globalTutorialData = { finishedTutorials: {}, helperLinks: {} };
-  const { currentTutorial = {} } = user;
+  const { _id: userId, gameId, currentTutorial = {}, finishedTutorials = {}, helperLinks = {} } = user;
+  const usedCount = (finishedTutorials[currentTutorial.active]?.count || 0) + 1;
 
-  if (tutorialName) {
-    if (currentTutorial.active) throw new Error('Другое обучение уже активно в настоящий момент');
+   if (tutorialName) {
+    if (action === 'changeTutorial') {
+      Object.assign(globalTutorialData, {
+        finishedTutorials: { [currentTutorial.active]: { usedCount } }
+      });
+    } else if (currentTutorial.active) throw new Error('Другое обучение уже активно в настоящий момент');
 
     const { steps: tutorial, utils = {} } = lib.helper.getTutorial(tutorialName);
     const helper = step ? Object.entries(tutorial).find(([key]) => key === step)[1]
@@ -11,20 +16,26 @@ async (user, { action, step, tutorial: tutorialName, usedLink, isMobile }) => {
     if (!helper) throw new Error('Tutorial initial step not found');
 
     const nextStep = prepareStep(helper, { utils });
-    user.set({ helper: nextStep, currentTutorial: { active: tutorialName } });
+    user.set({ helper: nextStep, currentTutorial: { active: tutorialName } }, { reset: ['helper'] });
 
-    if (usedLink) globalTutorialData.helperLinks[usedLink] = { used: true };
-    if (user.gameId) lib.store.broadcaster.publishAction.call(user, `game-${user.gameId}`, 'playerUseTutorial', { user, usedLink });
+    if (gameId && (usedLink && (helperLinks[usedLink]?.used || 0) < 2)) {
+      lib.store.broadcaster.publishAction.call(user, `game-${gameId}`, 'playerUseTutorial', { userId, usedLink });
+    }
+
+    if (usedLink) {
+      const used = (helperLinks[usedLink]?.used || 0) + 1;
+      globalTutorialData.helperLinks[usedLink] = { used };
+    }
   } else if (currentTutorial.active) {
     if (action === 'exit') {
       Object.assign(globalTutorialData, {
         helper: null,
         currentTutorial: null,
-        finishedTutorials: { [currentTutorial.active]: true }
+        finishedTutorials: { [currentTutorial.active]: { usedCount } }
       });
     } else {
       const { steps: tutorial, utils = {} } = lib.helper.getTutorial(currentTutorial.active);
-        const nextStep = prepareStep(tutorial[step], { utils });
+      const nextStep = prepareStep(tutorial[step], { utils });
 
       if (nextStep) {
         user.set({ helper: nextStep }, {
@@ -36,7 +47,7 @@ async (user, { action, step, tutorial: tutorialName, usedLink, isMobile }) => {
         Object.assign(globalTutorialData, {
           helper: null,
           currentTutorial: null,
-          finishedTutorials: { [currentTutorial.active]: true }
+          finishedTutorials: { [currentTutorial.active]: { usedCount } }
         });
       }
     }
@@ -51,12 +62,16 @@ async (user, { action, step, tutorial: tutorialName, usedLink, isMobile }) => {
     globalTutorialData.currentTutorial !== undefined;
 
   if (hasGlobalChanges) {
-    user.set({ ...globalTutorialData }, { removeEmptyObject: true }); // из-за прдустановленного globalTutorialData.finishedTutorials может уйи пустой объект и перетереться его содержимое в БД
+    user.set({ ...globalTutorialData }, { removeEmptyObject: true }); // из-за предустановленного globalTutorialData.finishedTutorials может уйти пустой объект и перетереться его содержимое в БД
     await user.saveChanges({ saveToLobbyUser: true });
   }
 
   function prepareStep(helper, { utils }) {
+    const prepareFunction = helper.prepare;
     const nextStep = lib.utils.structuredClone({ ...helper, utils }, { convertFuncToString: true });
+
+    if (prepareFunction) prepareFunction({ step: nextStep, user });
+
     if (nextStep.active) {
       if (!Array.isArray(nextStep.active)) nextStep.active = [nextStep.active];
       for (const [key, val] of Object.entries(nextStep.active)) {

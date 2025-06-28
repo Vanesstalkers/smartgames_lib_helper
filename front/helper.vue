@@ -1,7 +1,7 @@
 <template>
   <div v-if="!resetFlag" :class="['helper', game ? 'in-game' : '', ...helperClass]" @change="handleChange">
-    <div v-for="link in filledHelperLinks" :key="link.code" :class="['helper-link', 'helper-avatar', link.customClass]"
-      :style="{
+    <div v-for="link in filledHelperLinks" :key="link.code"
+      :class="['helper-link', 'helper-avatar', link.customClass, link.used ? 'used' : '']" :style="{
         left: `${link.clientRect.left + (link.pos.left ? 0 : link.clientRect.width)}px`,
         top: `${link.clientRect.top + (link.pos.top ? 0 : link.clientRect.height)}px`,
       }" v-on:click.stop="showTutorial(link)" />
@@ -75,6 +75,8 @@ export default {
       dialogClassMap: {},
       resetFlag: false,
       inputData: {},
+      keyDownHandler: null,
+      keyUpHandler: null,
     };
   },
   watch: {
@@ -103,7 +105,7 @@ export default {
     },
     helperLinksEntries() {
       return Object.entries(this.helperLinks).filter(
-        ([code, link]) => link.used !== true && link.type === (this.game ? 'game' : 'lobby')
+        ([code, link]) => link.type === (this.game ? 'game' : 'lobby')
       );
     },
     filledHelperLinks() {
@@ -384,7 +386,7 @@ export default {
 
       this.menu = null;
 
-      if (message === 'Forbidden') message += ` (попробуйте обновить страницу)`;
+      if (message === 'Forbidden') message += ' (попробуйте обновить страницу)';
       this.alertList.push(message);
       self.hideAlert = stack;
       if (self.hideAlert) this.showHideAlert = false;
@@ -398,6 +400,22 @@ export default {
         }, hideTime);
       }
     };
+
+    // Слушатель нажатия клавиши Ctrl
+    const handleKeyDown = (event) => {
+      if (event.key === 'Control') {
+        document.body.classList.add('show-used-helper-links');
+      }
+    };
+
+    const handleKeyUp = (event) => {
+      if (event.key === 'Control') {
+        document.body.classList.remove('show-used-helper-links');
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('keyup', handleKeyUp);
 
     this.mutationObserver = new MutationObserver(function (mutationsList, observer) {
       mutationsList.forEach(mutation => {
@@ -433,6 +451,14 @@ export default {
   },
   async beforeDestroy() {
     this.mutationObserver.disconnect();
+
+    // Удаляем слушатели событий клавиатуры
+    if (this.keyDownHandler) {
+      document.removeEventListener('keydown', this.keyDownHandler);
+    }
+    if (this.keyUpHandler) {
+      document.removeEventListener('keyup', this.keyUpHandler);
+    }
   },
 };
 </script>
@@ -502,6 +528,12 @@ export default {
         &:hover {
           opacity: 0.7;
         }
+
+      }
+
+      a {
+        color: #f4e205 !important;
+        font-weight: bold;
       }
 
       >.show-hide {
@@ -762,7 +794,9 @@ export default {
 
   .content {
     padding-right: 40px;
+    padding-bottom: 50px;
     align-items: center;
+    overflow: hidden;
 
     .img {
       width: 100%;
@@ -955,10 +989,18 @@ body[tutorial-active] #app:after {
   cursor: pointer;
   box-shadow: 0 0 10px 10px #f4e205;
   border: 1px solid #f4e205;
+
+  &:hover {
+    opacity: 0.7;
+  }
+
+  &.used {
+    display: none;
+  }
 }
 
-.helper-link:hover {
-  opacity: 0.7;
+.show-used-helper-links .helper-link.used {
+  display: block;
 }
 
 .mobile-view .helper-link {
