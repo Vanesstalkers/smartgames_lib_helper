@@ -448,6 +448,10 @@ export default {
     document.addEventListener('transitionend', () => {
       self.updateLinksCoordinates();
     });
+
+    // Сохраняем ссылки на обработчики для удаления в beforeDestroy
+    this.keyDownHandler = handleKeyDown;
+    this.keyUpHandler = handleKeyUp;
   },
   async beforeDestroy() {
     this.mutationObserver.disconnect();
@@ -903,8 +907,13 @@ export default {
     cursor: pointer;
 
     &:hover {
-      color: white;
+      color: white !important;
+
+      a {
+        color: white !important;
+      }
     }
+
   }
 }
 
