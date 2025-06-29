@@ -217,9 +217,10 @@ export default {
       });
 
       if (active.length) {
-        for (let { selector, onclick, customClass, css } of active) {
+        for (let { selector, onlyFirst, onclick, customClass, css } of active) {
           // если в beforeAction проводились манипуляции с dom, то селектор отработает только в nextTick
-          document.querySelectorAll(selector).forEach((el) => {
+          document.querySelectorAll(selector).forEach((el, index) => {
+            if (onlyFirst && index > 0) return;
             if (el) {
               el.classList.add('tutorial-active');
               if (css) {
@@ -798,13 +799,11 @@ export default {
 
   .content {
     padding-right: 40px;
-    padding-bottom: 50px;
     align-items: center;
     overflow: hidden;
 
     .img {
       width: 100%;
-      height: 80%;
 
       img {
         max-width: 100%;

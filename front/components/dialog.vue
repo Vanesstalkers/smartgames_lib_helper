@@ -99,7 +99,6 @@ export default {
       .text {
         width: 50%;
         padding-left: 20px;
-        padding-top: 20px;
       }
     }
   }
