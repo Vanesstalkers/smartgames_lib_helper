@@ -7,11 +7,11 @@ async (context, { inGame = false }) => {
 
   const updatedHelperLinks = {};
   for (const key of Object.keys(helperLinks)) {
-    updatedHelperLinks[key] = { used: null };
+    updatedHelperLinks[key] = { ...helperLinks[key], used: null };
   }
 
   user.set({ helperLinks: updatedHelperLinks }, { removeEmptyObject: true });
-  await user.saveChanges();
+  await user.saveChanges({ saveToLobbyUser: true });
 
   return { status: 'ok' };
 };

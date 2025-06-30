@@ -1,23 +1,23 @@
 <template>
   <div :class="['helper-dialog', 'scroll-off', `scale-${state.guiScale}`, ...dialogClass]" :style="dialogStyle">
     <div class="helper-avatar" />
-    <div :class="['content', helperData.img && helperData.text ? 'nowrap' : '']">
+    <div :class="['content', helperData.img && helperData.text ? 'split-img-text' : '']">
       <div v-if="helperData.img" class="img">
         <img :src="helperData.img" />
       </div>
-      <div class="text">
-        {{ helperData.text }}
+
+      <div v-if="helperData.text" class="text" v-html="helperData.text.trim()" />
+      <div v-if="helperData.html" v-html="helperDataHtml()"></div>
+      <div v-if="helperData.input" class="input">
+        <input :value="helperData.input.value" :placeholder="helperData.input.placeholder"
+          :name="helperData.input.name" />
       </div>
       <div class="video" />
       <div v-if="helperData.buttons" class="controls">
         <button v-for="button in helperData.buttons" :key="button.text" v-on:click.stop="action({ ...button })">
-          <font-awesome-icon
-            v-if="button.icon"
-            :icon="button.icon"
-            size="lg"
-            style="color: #f4e205; padding-right: 4px"
-          />
-          {{ button.text }}
+          <font-awesome-icon v-if="button.icon" :icon="button.icon" size="lg"
+            style="color: #f4e205; padding-right: 4px" />
+          <span v-html="button.text" />
           <div v-if="button.exit" class="exit-icon" />
         </button>
       </div>
@@ -26,10 +26,12 @@
 </template>
 
 <script>
+
 export default {
   name: 'helper',
   components: {},
   props: {
+    game: Object,
     customData: Object,
     dialogClassMap: {
       type: Object,
@@ -38,7 +40,11 @@ export default {
     dialogStyle: Object,
     action: {
       type: Function,
-      default: () => () => {},
+      default: () => () => { },
+    },
+    inputData: {
+      type: Object,
+      default: () => ({}),
     },
   },
   data() {
@@ -58,8 +64,68 @@ export default {
         .map(([name]) => name);
     },
   },
-  methods: {},
+  methods: {
+    helperDataHtml() {
+      let html;
+      if (typeof this.helperData.html === 'string') {
+        html = new Function(`return ${this.helperData.html}`)()(this.game);
+      } else {
+        html = this.helperData.html(this.game);
+      }
+      return html;
+    },
+  },
 };
 </script>
 
-<style lang="scss"></style>
+<style lang="scss">
+.helper-dialog {
+  .content {
+    .img {
+      img {
+        width: 100%;
+      }
+    }
+
+    &.split-img-text {
+      justify-content: space-around;
+      align-items: center;
+
+      .img {
+        width: auto;
+        max-width: calc(50% - 20px);
+      }
+
+      .text {
+        width: 50%;
+        padding-left: 20px;
+      }
+    }
+  }
+
+  .input {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    align-items: start;
+
+    input {
+      color: #f4e205;
+      border-color: #f4e205;
+      text-align: center;
+      background: black;
+      border-radius: 4px;
+      font-size: 16px;
+      padding: 4px;
+    }
+  }
+
+  a {
+    color: lightblue !important;
+  }
+
+  .text-left {
+    text-align: left;
+  }
+}
+</style>
