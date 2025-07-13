@@ -3,22 +3,24 @@ async (user, { action, step, tutorial: tutorialName, usedLink }) => {
   const { _id: userId, gameId, currentTutorial = {}, finishedTutorials = {}, helperLinks = {} } = user;
   const usedCount = (finishedTutorials[currentTutorial.active]?.count || 0) + 1;
 
-   if (tutorialName) {
+  if (tutorialName) {
     if (action === 'changeTutorial') {
       Object.assign(globalTutorialData, {
-        finishedTutorials: { [currentTutorial.active]: { usedCount } }
+        finishedTutorials: { [currentTutorial.active]: { usedCount } },
       });
     } else if (currentTutorial.active) throw new Error('Другое обучение уже активно в настоящий момент');
 
     const { steps: tutorial, utils = {} } = lib.helper.getTutorial(tutorialName);
-    const helper = step ? Object.entries(tutorial).find(([key]) => key === step)[1]
+    const helper = step
+      ? Object.entries(tutorial).find(([key]) => key === step)[1]
       : Object.values(tutorial).find(({ initialStep }) => initialStep);
+
     if (!helper) throw new Error('Tutorial initial step not found');
 
     const nextStep = prepareStep(helper, { utils });
     user.set({ helper: nextStep, currentTutorial: { active: tutorialName } }, { reset: ['helper'] });
 
-    if (gameId && (usedLink && (helperLinks[usedLink]?.used || 0) < 2)) {
+    if (gameId && usedLink && (helperLinks[usedLink]?.used || 0) < 2) {
       lib.store.broadcaster.publishAction.call(user, `game-${gameId}`, 'playerUseTutorial', { userId, usedLink });
     }
 
@@ -31,23 +33,26 @@ async (user, { action, step, tutorial: tutorialName, usedLink }) => {
       Object.assign(globalTutorialData, {
         helper: null,
         currentTutorial: null,
-        finishedTutorials: { [currentTutorial.active]: { usedCount } }
+        finishedTutorials: { [currentTutorial.active]: { usedCount } },
       });
     } else {
       const { steps: tutorial, utils = {} } = lib.helper.getTutorial(currentTutorial.active);
       const nextStep = prepareStep(tutorial[step], { utils });
 
       if (nextStep) {
-        user.set({ helper: nextStep }, {
-          reset: ['helper', 'helper.actions'], // reset обязателен, так как набор ключей в каждом helper-step может быть разный
-          removeEmptyObject: true, // делаем из-за helper.utils, который всегда одинаковый (в changes заишется как {}, что приведет к затиранию в БД)
-        });
+        user.set(
+          { helper: nextStep },
+          {
+            reset: ['helper', 'helper.actions'], // reset обязателен, так как набор ключей в каждом helper-step может быть разный
+            removeEmptyObject: true, // делаем из-за helper.utils, который всегда одинаковый (в changes заишется как {}, что приведет к затиранию в БД)
+          }
+        );
         user.set({ currentTutorial: { step } });
       } else {
         Object.assign(globalTutorialData, {
           helper: null,
           currentTutorial: null,
-          finishedTutorials: { [currentTutorial.active]: { usedCount } }
+          finishedTutorials: { [currentTutorial.active]: { usedCount } },
         });
       }
     }
@@ -56,7 +61,8 @@ async (user, { action, step, tutorial: tutorialName, usedLink }) => {
   }
 
   await user.saveChanges();
-  const hasGlobalChanges = Object.keys(globalTutorialData.finishedTutorials).length ||
+  const hasGlobalChanges =
+    Object.keys(globalTutorialData.finishedTutorials).length ||
     Object.keys(globalTutorialData.helperLinks).length ||
     globalTutorialData.helper !== undefined ||
     globalTutorialData.currentTutorial !== undefined;

@@ -7,9 +7,9 @@
       }" v-on:click.stop="showTutorial(link)" />
 
     <div v-if="!menu" :class="['helper-guru', 'helper-avatar', `scale-${state.guiScale}`]" v-on:click.stop="initMenu">
+      <div :class="['toggle-alert-list-btn', alertList.length > 0 ? 'active' : '']"
+        v-on:click.stop="showAlertList = !showAlertList" />
       <div :class="['alert-list', showAlertList ? 'show' : '']">
-        <div :class="['toggle-alert-list-btn', alertList.length > 0 ? 'active' : '']"
-          v-on:click.stop="showAlertList = !showAlertList" />
         <div v-for="(alert, index) in alertList" :key="index" class="alert" v-on:click.stop="">
           <span v-html="alert" />
           <div v-if="showHiddenAlert">
@@ -392,7 +392,7 @@ export default {
       this.menu = null;
 
       if (message === 'Forbidden') message += ' (попробуйте обновить страницу)';
-      this.alertList.push(message);
+      this.alertList = [message];
       this.showAlertList = true;
       self.hiddenAlert = stack;
       if (self.hiddenAlert) this.showHiddenAlert = false;
@@ -568,27 +568,28 @@ export default {
       }
     }
 
-    .toggle-alert-list-btn {
-      position: absolute;
-      left: 0px;
-      top: -24px;
-      width: 20px;
-      height: 20px;
-      background-image: url(@/assets/info.png);
-      background-size: contain;
-      cursor: pointer;
-      background-color: black;
-      border-radius: 50%;
+  }
 
-      display: none;
+  .toggle-alert-list-btn {
+    position: absolute;
+    left: 0px;
+    top: 50px;
+    width: 20px;
+    height: 20px;
+    background-image: url(@/assets/info.png);
+    background-size: contain;
+    cursor: pointer;
+    background-color: black;
+    border-radius: 50%;
 
-      &.active {
-        display: block;
-      }
+    display: none;
 
-      &:hover {
-        opacity: 0.7;
-      }
+    &.active {
+      display: block;
+    }
+
+    &:hover {
+      opacity: 0.7;
     }
   }
 
