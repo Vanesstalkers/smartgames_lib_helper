@@ -7,13 +7,15 @@
       }" v-on:click.stop="showTutorial(link)" />
 
     <div v-if="!menu" :class="['helper-guru', 'helper-avatar', `scale-${state.guiScale}`]" v-on:click.stop="initMenu">
-      <div v-if="alertList.length > 0" class="alert-list">
+      <div :class="['alert-list', showAlertList ? 'show' : '']">
+        <div :class="['toggle-alert-list-btn', alertList.length > 0 ? 'active' : '']"
+          v-on:click.stop="showAlertList = !showAlertList" />
         <div v-for="(alert, index) in alertList" :key="index" class="alert" v-on:click.stop="">
           <span v-html="alert" />
-          <div v-if="showHideAlert">
-            <small v-html="hideAlert" />
+          <div v-if="showHiddenAlert">
+            <small v-html="hiddenAlert" />
           </div>
-          <div v-if="hideAlert" class="show-hide" v-on:click.stop="showHideAlert = true" />
+          <div v-if="hiddenAlert" class="show-hide" v-on:click.stop="showHiddenAlert = true" />
           <div class="close" v-on:click.stop="alertList = alertList.filter((_, i) => i !== index)" />
         </div>
       </div>
@@ -58,14 +60,15 @@ export default {
   props: {
     game: Object,
     showProfile: Function,
-    defaultMenu: Object,
+    customMenu: Object,
   },
   data() {
     return {
       timeoutId: null,
       alertList: [],
-      hideAlert: null,
-      showHideAlert: false,
+      showAlertList: false,
+      hiddenAlert: null,
+      showHiddenAlert: false,
       mutationObserver: null,
       helperLinksBounds: {},
       menu: null,
@@ -296,7 +299,7 @@ export default {
       }
     },
     async initMenu() {
-      this.menu = this.defaultMenu;
+      this.menu = this.customMenu;
     },
     async menuAction({ action }) {
       if (typeof action === 'function') return await action.call(this);
@@ -380,23 +383,26 @@ export default {
     const self = this;
     window.prettyAlertClear = () => {
       this.alertList = [];
-      this.hideAlert = null;
+      this.hiddenAlert = null;
+      this.showAlertList = false;
     };
-    window.prettyAlert = ({ message, stack } = {}, { hideTime = 5000 } = {}) => {
+    window.prettyAlert = ({ message, stack } = {}, { hideTime = 3000 } = {}) => {
       if (this.alertList.includes(message)) return;
 
       this.menu = null;
 
       if (message === 'Forbidden') message += ' (попробуйте обновить страницу)';
       this.alertList.push(message);
-      self.hideAlert = stack;
-      if (self.hideAlert) this.showHideAlert = false;
+      this.showAlertList = true;
+      self.hiddenAlert = stack;
+      if (self.hiddenAlert) this.showHiddenAlert = false;
 
       if (hideTime > 0) {
         setTimeout(() => {
-          this.alertList = this.alertList.filter(alert => alert !== message);
+          self.showAlertList = false;
+          // this.alertList = this.alertList.filter(alert => alert !== message);
           if (this.alertList.length === 0) {
-            self.hideAlert = null;
+            self.hiddenAlert = null;
           }
         }, hideTime);
       }
@@ -492,7 +498,14 @@ export default {
     top: auto;
     bottom: 110%;
 
+    &.show {
+      .alert {
+        display: block;
+      }
+    }
+
     .alert {
+      display: none;
       position: relative;
       border: 4px solid #f4e205;
       background-image: url(@/assets/clear-black-back.png);
@@ -552,6 +565,29 @@ export default {
         background-color: black;
         border-radius: 50%;
         cursor: pointer;
+      }
+    }
+
+    .toggle-alert-list-btn {
+      position: absolute;
+      left: 0px;
+      top: -24px;
+      width: 20px;
+      height: 20px;
+      background-image: url(@/assets/info.png);
+      background-size: contain;
+      cursor: pointer;
+      background-color: black;
+      border-radius: 50%;
+
+      display: none;
+
+      &.active {
+        display: block;
+      }
+
+      &:hover {
+        opacity: 0.7;
       }
     }
   }
