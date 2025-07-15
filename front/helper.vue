@@ -304,6 +304,17 @@ export default {
     async menuAction({ action }) {
       if (typeof action === 'function') return await action.call(this);
 
+      if (action.tutorial) {
+        await api.action
+          .call({
+            path: 'helper.api.action',
+            args: [{ ...action, isMobile: this.state.isMobile }],
+          })
+          .catch(prettyAlert);
+        this.menu = null;
+        return;
+      }
+
       switch (action) {
         case 'exit':
           this.menu = null;
@@ -656,24 +667,6 @@ export default {
   left: 20px;
   bottom: 20px;
   max-width: 50%;
-
-  .input {
-    display: flex;
-    justify-content: center;
-    width: 100%;
-    align-items: start;
-
-    input {
-      color: #f4e205;
-      border-color: #f4e205;
-      text-align: center;
-      background: black;
-      border-radius: 4px;
-      font-size: 16px;
-      padding: 4px;
-      margin: 20px 0px 10px 0px;
-    }
-  }
 }
 
 .mobile-view .helper-menu {
@@ -892,6 +885,39 @@ export default {
   display: flex;
   flex-wrap: wrap;
   line-height: 22px;
+
+  .input {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    align-items: start;
+
+    input {
+      color: #f4e205;
+      border-color: #f4e205;
+      text-align: center;
+      background: black;
+      border-radius: 4px;
+      font-size: 16px;
+      padding: 4px;
+      margin: 20px 0px 10px 0px;
+    }
+
+    select {
+      color: #f4e205;
+      border-color: #f4e205;
+      text-align: center;
+      background: black;
+      border-radius: 4px;
+      font-size: 16px;
+      padding: 4px;
+      margin: 20px 0px 10px 20px;
+
+      >option {
+        font-size: 10px;
+      }
+    }
+  }
 }
 
 .mobile-view .helper-dialog>.content,

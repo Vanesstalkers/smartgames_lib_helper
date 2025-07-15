@@ -9,8 +9,14 @@
       <div v-if="helperData.text" class="text" v-html="helperData.text.trim()" />
       <div v-if="helperData.html" v-html="helperDataHtml()"></div>
       <div v-if="helperData.input" class="input">
-        <input :value="helperData.input.value" :placeholder="helperData.input.placeholder"
-          :name="helperData.input.name" />
+        <div v-for="input in helperDataInputs()">
+          <input v-if="!input.type || input.type === 'input'" :key="input.name" :name="input.name" :value="input.value"
+            :placeholder="input.placeholder" />
+          <select v-if="input.type === 'select'" :key="input.name" :name="input.name" :value="input.value">
+            <option v-for="option in input.options" :key="option.value" :value="option.value">{{ option.value }}
+            </option>
+          </select>
+        </div>
       </div>
       <div class="video" />
       <div v-if="helperData.buttons" class="controls">
@@ -74,6 +80,19 @@ export default {
       }
       return html;
     },
+    helperDataInputs() {
+      let input = this.helperData.input;
+      if (typeof input === 'string') input = new Function(`return ${this.helperData.input}`)()({ ...this.game });
+      if (!Array.isArray(input)) input = [input];
+
+      if (Object.keys(this.inputData).length < input.length) {
+        for (const { name, value } of input) {
+          if (!this.inputData[name]) this.inputData[name] = value;
+        }
+      }
+
+      return input;
+    },
   },
 };
 </script>
@@ -100,23 +119,6 @@ export default {
         width: 50%;
         padding-left: 20px;
       }
-    }
-  }
-
-  .input {
-    display: flex;
-    justify-content: center;
-    width: 100%;
-    align-items: start;
-
-    input {
-      color: #f4e205;
-      border-color: #f4e205;
-      text-align: center;
-      background: black;
-      border-radius: 4px;
-      font-size: 16px;
-      padding: 4px;
     }
   }
 
