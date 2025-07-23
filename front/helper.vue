@@ -402,7 +402,7 @@ export default {
 
       this.menu = null;
 
-      if (message === 'Forbidden') message += ' (попробуйте обновить страницу)';
+      if (message === 'Forbidden') message += ' (рекомендуется обновить страницу)';
       this.alertList = [message];
       this.showAlertList = true;
       self.hiddenAlert = stack;
