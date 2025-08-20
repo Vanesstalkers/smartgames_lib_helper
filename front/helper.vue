@@ -1,14 +1,21 @@
 <template>
   <div v-if="!resetFlag" :class="['helper', game ? 'in-game' : '', ...helperClass]" @change="handleChange">
-    <div v-for="link in filledHelperLinks" :key="link.code"
-      :class="['helper-link', 'helper-avatar', link.customClass, link.used ? 'used' : '']" :style="{
+    <div
+      v-for="link in filledHelperLinks"
+      :key="link.code"
+      :class="['helper-link', 'helper-avatar', link.customClass, link.used ? 'used' : '']"
+      :style="{
         left: `${link.clientRect.left + (link.pos.left ? 0 : link.clientRect.width)}px`,
         top: `${link.clientRect.top + (link.pos.top ? 0 : link.clientRect.height)}px`,
-      }" v-on:click.stop="showTutorial(link)" />
+      }"
+      v-on:click.stop="showTutorial(link)"
+    />
 
     <div v-if="!menu" :class="['helper-guru', 'helper-avatar', `scale-${state.guiScale}`]" v-on:click.stop="initMenu">
-      <div :class="['toggle-alert-list-btn', alertList.length > 0 ? 'active' : '']"
-        v-on:click.stop="showAlertList = !showAlertList" />
+      <div
+        :class="['toggle-alert-list-btn', alertList.length > 0 ? 'active' : '']"
+        v-on:click.stop="showAlertList = !showAlertList"
+      />
       <div :class="['alert-list', showAlertList ? 'show' : '']">
         <div v-for="(alert, index) in alertList" :key="index" class="alert" v-on:click.stop="">
           <span v-html="alert" />
@@ -26,26 +33,42 @@
         <div class="text" v-html="menu.text" />
         <div v-if="menu.html" v-html="menu.html(game)"></div>
         <ul v-if="menu.showList?.length" class="list">
-          <li v-for="(item, idx) in menu.showList.filter(item => item)" :key="'showList-' + idx"
-            v-on:click.stop="action(item.action)">
+          <li
+            v-for="(item, idx) in menu.showList.filter((item) => item)"
+            :key="'showList-' + idx"
+            v-on:click.stop="action(item.action)"
+          >
             {{ item.title }}
           </li>
         </ul>
 
-        <div v-if="menu.buttons" class='controls'>
-          <button v-for="button in menu.buttons.filter(b => b)" :key="button.text"
-            v-on:click.stop="menuAction({ action: button.action })" :class="[button.customClass]"
-            :style="button.style || {}">
+        <div v-if="menu.buttons" class="controls">
+          <button
+            v-for="button in menu.buttons.filter((b) => b)"
+            :key="button.text"
+            v-on:click.stop="menuAction({ action: button.action })"
+            :class="[button.customClass]"
+            :style="button.style || {}"
+          >
             {{ button.text }}
             <font-awesome-icon v-if="button.exit" :icon="['far', 'circle-xmark']" size="lg" style="color: #f4e205" />
-            <font-awesome-icon v-if="button.action === 'leaveGame'" :icon="['fas', 'right-from-bracket']" size="lg"
-              style="color: #f4e205" />
+            <font-awesome-icon
+              v-if="button.action === 'leaveGame'"
+              :icon="['fas', 'right-from-bracket']"
+              size="lg"
+              style="color: #f4e205"
+            />
           </button>
         </div>
       </div>
     </div>
-    <helper-dialog :game="game" :dialogClassMap="dialogClassMap" :dialogStyle="dialogStyle" :action="action"
-      :inputData="inputData" />
+    <helper-dialog
+      :game="game"
+      :dialogClassMap="dialogClassMap"
+      :dialogStyle="dialogStyle"
+      :action="action"
+      :inputData="inputData"
+    />
   </div>
 </template>
 
@@ -56,6 +79,61 @@ export default {
   name: 'helper',
   components: {
     helperDialog,
+  },
+  menuWrapper(userData) {
+    return function ({ buttons }) {
+      return {
+        text: `Чем могу помочь, ${userData.name || userData.login}?`,
+        bigControls: true,
+        buttons,
+      };
+    };
+  },
+  menuButtonsMap(tutorialActions) {
+    const { leaveGame } = tutorialActions || {};
+
+    return {
+      cancel: () => ({ text: 'Спасибо, ничего не нужно', action: 'exit', exit: true }),
+      restore: () => ({
+        text: 'Восстановить игру',
+        action: { tutorial: 'game-tutorial-restoreForced' },
+      }),
+      tutorials: ({ showList = [] } = {}) => ({
+        text: 'Покажи доступные обучения',
+        action: {
+          text: showList.length
+            ? 'Нажми на нужное обучение в списке, чтобы запустить его повторно:'
+            : 'Нет доступных обучений',
+          showList,
+          buttons: [
+            { text: 'Назад в меню', action: 'init' },
+            { text: 'Спасибо', action: 'exit', exit: true },
+          ],
+        },
+      }),
+      helperLinks: ({ inGame = false } = {}) => ({
+        text: 'Активировать подсказки',
+        action: async function () {
+          await api.action
+            .call({
+              path: 'helper.api.restoreLinks',
+              args: [{ inGame }],
+            })
+            .then(() => {
+              this.menu = null;
+              {
+                // перерисовываем helper-а, чтобы отобразились подсказки
+                this.resetFlag = true;
+                setTimeout(() => {
+                  this.resetFlag = false;
+                }, 100);
+              }
+            })
+            .catch(prettyAlert);
+        },
+      }),
+      leave: () => ({ text: 'Выйти из игры', action: leaveGame }),
+    };
   },
   props: {
     game: Object,
@@ -107,9 +185,7 @@ export default {
       return this.state.store.user?.[this.state.currentUser]?.helperLinks || {};
     },
     helperLinksEntries() {
-      return Object.entries(this.helperLinks).filter(
-        ([code, link]) => link.type === (this.game ? 'game' : 'lobby')
-      );
+      return Object.entries(this.helperLinks).filter(([code, link]) => link.type === (this.game ? 'game' : 'lobby'));
     },
     filledHelperLinks() {
       const result = Object.entries(this.helperLinks)
@@ -193,7 +269,8 @@ export default {
 
       let actionsData = {};
       if (actions) {
-        if (utils) { // вспомогательные функции, вызываемые внутри actions
+        if (utils) {
+          // вспомогательные функции, вызываемые внутри actions
           for (const [name, func] of Object.entries(utils)) {
             if (typeof func === 'string') {
               utils[name] = new Function('return ' + func.replace(`${name}(data)`, '(data)=>'))();
@@ -203,7 +280,7 @@ export default {
 
         if (actions.before) {
           const context = { $root: this.$root.$el, state: this.state, utils };
-          actionsData = await new Function('return ' + actions.before)()(context) || {};
+          actionsData = (await new Function('return ' + actions.before)()(context)) || {};
         }
       }
       const { skipStep } = actionsData;
@@ -232,7 +309,10 @@ export default {
                   el._originalStyles = {};
                   const computedStyle = window.getComputedStyle(el);
                   Object.entries(css).forEach(([origKey, val]) => {
-                    const key = (origKey in el.style || el.style.hasOwnProperty(origKey)) ? origKey : this.convertToFirefoxStyle(origKey);
+                    const key =
+                      origKey in el.style || el.style.hasOwnProperty(origKey)
+                        ? origKey
+                        : this.convertToFirefoxStyle(origKey);
                     el._originalStyles[key] = computedStyle.getPropertyValue(key);
                     el.style[key] = val;
                   });
@@ -270,7 +350,8 @@ export default {
         let actionsData = {};
 
         if (actions) {
-          if (utils) { // вспомогательные функции, вызываемые внутри actions
+          if (utils) {
+            // вспомогательные функции, вызываемые внутри actions
             for (const [name, func] of Object.entries(utils)) {
               if (typeof func === 'string') {
                 utils[name] = new Function('return ' + func.replace(`${name}(data)`, '(data)=>'))();
@@ -280,9 +361,11 @@ export default {
 
           if (actions[action]) {
             const context = { inputData: this.inputData, $root: this.$root.$el, state: this.state, utils };
-            if (typeof actions[action] === 'string') { // приходит с бэка
+            if (typeof actions[action] === 'string') {
+              // приходит с бэка
               actionsData = await new Function('return ' + actions[action])()(context);
-            } else { // объявлено на фронте
+            } else {
+              // объявлено на фронте
               actionsData = await actions[action](context);
             }
           }
@@ -362,12 +445,11 @@ export default {
       }
 
       // Проверяем, находится ли элемент в области видимости
-      const isInViewport = (
+      const isInViewport =
         rect.top >= 0 &&
         rect.left >= 0 &&
         rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
-        rect.right <= (window.innerWidth || document.documentElement.clientWidth)
-      );
+        rect.right <= (window.innerWidth || document.documentElement.clientWidth);
 
       return isInViewport;
     },
@@ -436,7 +518,7 @@ export default {
     document.addEventListener('keyup', handleKeyUp);
 
     this.mutationObserver = new MutationObserver(function (mutationsList, observer) {
-      mutationsList.forEach(mutation => {
+      mutationsList.forEach((mutation) => {
         if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
           const el = mutation.target;
           const oldClasses = mutation.oldValue || '';
@@ -446,7 +528,7 @@ export default {
           if (oldClasses.includes('tutorial-active') && !newClasses.includes('tutorial-active')) {
             // Восстанавливаем сохраненные стили
             if (el._originalStyles) {
-              Object.keys(el._originalStyles).forEach(key => {
+              Object.keys(el._originalStyles).forEach((key) => {
                 el.style[key] = el._originalStyles[key];
               });
               delete el._originalStyles;
@@ -543,7 +625,7 @@ export default {
         background-size: 30px;
       }
 
-      >.close {
+      > .close {
         position: absolute;
         right: -10px;
         top: -10px;
@@ -557,7 +639,6 @@ export default {
         &:hover {
           opacity: 0.7;
         }
-
       }
 
       a {
@@ -565,7 +646,7 @@ export default {
         font-weight: bold;
       }
 
-      >.show-hide {
+      > .show-hide {
         position: absolute;
         right: 15px;
         top: -10px;
@@ -578,7 +659,6 @@ export default {
         cursor: pointer;
       }
     }
-
   }
 
   .toggle-alert-list-btn {
@@ -603,7 +683,6 @@ export default {
       opacity: 0.7;
     }
   }
-
 
   &.scale-1 {
     scale: 0.8;
@@ -650,8 +729,8 @@ export default {
   }
 }
 
-.helper.dialog-active>.helper-guru,
-.helper.dialog-active>.helper-link {
+.helper.dialog-active > .helper-guru,
+.helper.dialog-active > .helper-link {
   display: none;
 }
 
@@ -737,7 +816,7 @@ export default {
   right: auto;
 }
 
-.helper-menu>.content {
+.helper-menu > .content {
   display: flex;
 
   .text {
@@ -748,7 +827,7 @@ export default {
   .list {
     margin-bottom: 20px;
 
-    >* {
+    > * {
       cursor: pointer;
       padding: 0px 20px;
       text-align: left;
@@ -857,7 +936,6 @@ export default {
       }
     }
   }
-
 }
 
 .mobile-view .helper-dialog {
@@ -868,12 +946,12 @@ export default {
   transform: translate(-50%, -50%);
 }
 
-.helper.dialog-active>.helper-dialog {
+.helper.dialog-active > .helper-dialog {
   display: flex;
 }
 
-.helper-dialog>.content,
-.helper-menu>.content {
+.helper-dialog > .content,
+.helper-menu > .content {
   width: 100%;
   margin: 30px;
   border: 2px solid #f4e205;
@@ -913,27 +991,27 @@ export default {
       padding: 4px;
       margin: 20px 0px 10px 20px;
 
-      >option {
+      > option {
         font-size: 10px;
       }
     }
   }
 }
 
-.mobile-view .helper-dialog>.content,
-.mobile-view .helper-menu>.content {
+.mobile-view .helper-dialog > .content,
+.mobile-view .helper-menu > .content {
   font-size: 10px;
   padding: 10px 24px 20px 10px;
   min-height: 40px;
   background: black;
 }
 
-.helper-dialog>.content.nowrap,
-.helper-menu>.content.nowrap {
+.helper-dialog > .content.nowrap,
+.helper-menu > .content.nowrap {
   flex-wrap: nowrap;
 }
 
-.helper-menu>.content {
+.helper-menu > .content {
   min-height: 50px;
 }
 
@@ -941,7 +1019,7 @@ export default {
   max-width: 50%;
 }
 
-.helper-dialog>.content>.text {
+.helper-dialog > .content > .text {
   width: 100%;
 
   a {
@@ -950,8 +1028,8 @@ export default {
   }
 }
 
-.helper-dialog>.content>.controls,
-.helper-menu>.content>.controls {
+.helper-dialog > .content > .controls,
+.helper-menu > .content > .controls {
   position: absolute;
   bottom: 6px;
   left: 0px;
@@ -975,12 +1053,11 @@ export default {
         color: white !important;
       }
     }
-
   }
 }
 
-.helper-dialog.big-controls>.content>.controls,
-.helper-menu.big-controls>.content>.controls {
+.helper-dialog.big-controls > .content > .controls,
+.helper-menu.big-controls > .content > .controls {
   top: 100%;
   flex-wrap: wrap;
   margin-top: -40px;
@@ -994,14 +1071,14 @@ export default {
   }
 }
 
-.mobile-view .helper-dialog>.content>.controls>button,
-.mobile-view .helper-menu>.content>.controls>button {
+.mobile-view .helper-dialog > .content > .controls > button,
+.mobile-view .helper-menu > .content > .controls > button {
   padding: 4px 10px;
   font-size: 10px;
 }
 
-.helper-dialog>.helper-avatar,
-.helper-menu>.helper-avatar {
+.helper-dialog > .helper-avatar,
+.helper-menu > .helper-avatar {
   position: absolute;
   z-index: 10001 !important;
   border-radius: 50%;
@@ -1012,8 +1089,8 @@ export default {
   height: 48px;
 }
 
-.mobile-view .helper-dialog>.helper-avatar,
-.mobile-view .helper-menu>.helper-avatar {
+.mobile-view .helper-dialog > .helper-avatar,
+.mobile-view .helper-menu > .helper-avatar {
   width: 40px;
   height: 40px;
 }
@@ -1079,12 +1156,12 @@ body[tutorial-active] #app:after {
   height: 30px;
 }
 
-.helper.dialog-active.show-menu>.helper-guru {
+.helper.dialog-active.show-menu > .helper-guru {
   z-index: 100000 !important;
   display: block;
 }
 
-.helper.dialog-active.show-menu>.helper-menu {
+.helper.dialog-active.show-menu > .helper-menu {
   z-index: 100000 !important;
 }
 
@@ -1094,7 +1171,6 @@ body[tutorial-active] #app:after {
 }
 
 .tutorial-active {
-
   &.tutorial-show {
     display: block !important;
   }
