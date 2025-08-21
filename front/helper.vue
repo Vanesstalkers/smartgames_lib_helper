@@ -139,6 +139,7 @@ export default {
     game: Object,
     showProfile: Function,
     customMenu: Object,
+    injectedActions: Object,
   },
   data() {
     return {
@@ -279,7 +280,7 @@ export default {
         }
 
         if (actions.before) {
-          const context = { $root: this.$root.$el, state: this.state, utils };
+          const context = { $root: this.$root.$el, state: this.state, utils, actions: this.injectedActions };
           actionsData = (await new Function('return ' + actions.before)()(context)) || {};
         }
       }
@@ -367,7 +368,10 @@ export default {
           }
 
           if (actions[action]) {
-            const context = { inputData: this.inputData, $root: this.$root.$el, state: this.state, utils };
+            const context = {
+              inputData: this.inputData,
+              ...{ $root: this.$root.$el, state: this.state, utils, actions: this.injectedActions },
+            };
             if (typeof actions[action] === 'string') {
               // приходит с бэка
               actionsData = await new Function('return ' + actions[action])()(context);
