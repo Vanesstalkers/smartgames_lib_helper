@@ -302,24 +302,31 @@ export default {
           document.querySelectorAll(selector).forEach((el, index) => {
             if (onlyFirst && index > 0) return;
             if (el) {
-              el.classList.add('tutorial-active');
-              if (css) {
-                // Сохраняем текущие стили перед перезаписью
-                if (!el._originalStyles) {
-                  el._originalStyles = {};
-                  const computedStyle = window.getComputedStyle(el);
-                  Object.entries(css).forEach(([origKey, val]) => {
-                    const key =
-                      origKey in el.style || el.style.hasOwnProperty(origKey)
-                        ? origKey
-                        : this.convertToFirefoxStyle(origKey);
-                    el._originalStyles[key] = computedStyle.getPropertyValue(key);
-                    el.style[key] = val;
-                  });
+              // без nextTick не будет срабатывать проверка на удаление 'tutorial-active' в mutationObserver
+              this.$nextTick(() => {
+                el.classList.add('tutorial-active');
+
+                if (css) {
+                  // Сохраняем текущие стили перед перезаписью
+                  if (!el._originalStyles) {
+                    el._originalStyles = {};
+                    const computedStyle = window.getComputedStyle(el);
+                    Object.entries(css).forEach(([origKey, val]) => {
+                      const key =
+                        origKey in el.style || el.style.hasOwnProperty(origKey)
+                          ? origKey
+                          : this.convertToFirefoxStyle(origKey);
+                      el._originalStyles[key] = computedStyle.getPropertyValue(key);
+                      el.style[key] = val;
+                    });
+                  }
                 }
-              }
-              if (customClass) el.classList.add(customClass);
-              if (onclick) el.addEventListener('click', () => this.action(onclick));
+                if (customClass) {
+                  el.classList.add(customClass);
+                  el._customClass = customClass;
+                }
+                if (onclick) el.addEventListener('click', () => this.action(onclick));
+              });
             }
           });
         }
@@ -532,6 +539,10 @@ export default {
                 el.style[key] = el._originalStyles[key];
               });
               delete el._originalStyles;
+            }
+            if (el._customClass) {
+              el.classList.remove(el._customClass);
+              delete el._customClass;
             }
           }
         }
