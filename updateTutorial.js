@@ -74,7 +74,8 @@ async (user, { action, step, tutorial: tutorialName, usedLink }) => {
 
   function prepareStep(helper, { utils }) {
     const prepareFunction = helper.prepare;
-    const nextStep = lib.utils.structuredClone({ ...helper, utils }, { convertFuncToString: true });
+    const img = helper.img ? `${domain.game.configs.tutorialImgPrefix}${helper.img}` : undefined;
+    const nextStep = lib.utils.structuredClone({ ...helper, utils, img }, { convertFuncToString: true });
 
     if (prepareFunction) prepareFunction({ step: nextStep, user });
 
