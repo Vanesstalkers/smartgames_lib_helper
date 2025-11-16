@@ -11,7 +11,7 @@ async (context, { inGame = false }) => {
   }
 
   user.set({ helperLinks: updatedHelperLinks }, { removeEmptyObject: true });
-  await user.saveChanges({ saveToLobbyUser: true });
+  await user.saveChanges();
 
   return { status: 'ok' };
 };

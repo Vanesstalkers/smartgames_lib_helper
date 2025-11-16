@@ -11,9 +11,9 @@ async (user, { action, step, tutorial: tutorialName, usedLink }) => {
     } else if (currentTutorial.active) throw new Error('Другое обучение уже активно в настоящий момент');
 
     const { steps: tutorial, utils = {} } = lib.helper.getTutorial(tutorialName);
-    const helper = step
-      ? Object.entries(tutorial).find(([key]) => key === step)[1]
-      : Object.values(tutorial).find(({ initialStep }) => initialStep);
+    const helper = step ?
+      Object.entries(tutorial).find(([key]) => key === step)[1] :
+      Object.values(tutorial).find(({ initialStep }) => initialStep);
 
     if (!helper) throw new Error('Tutorial initial step not found');
 
@@ -43,8 +43,11 @@ async (user, { action, step, tutorial: tutorialName, usedLink }) => {
         user.set(
           { helper: nextStep },
           {
-            reset: ['helper', 'helper.actions'], // reset обязателен, так как набор ключей в каждом helper-step может быть разный
-            removeEmptyObject: true, // делаем из-за helper.utils, который всегда одинаковый (в changes заишется как {}, что приведет к затиранию в БД)
+            // reset обязателен, так как набор ключей в каждом helper-step может быть разный
+            reset: ['helper', 'helper.actions'],
+            /* делаем из-за helper.utils, который всегда одинаковый
+            (в changes запишется как {}, что приведет к затиранию в БД) */
+            removeEmptyObject: true,
           }
         );
         user.set({ currentTutorial: { step } });
@@ -68,13 +71,15 @@ async (user, { action, step, tutorial: tutorialName, usedLink }) => {
     globalTutorialData.currentTutorial !== undefined;
 
   if (hasGlobalChanges) {
-    user.set({ ...globalTutorialData }, { removeEmptyObject: true }); // из-за предустановленного globalTutorialData.finishedTutorials может уйти пустой объект и перетереться его содержимое в БД
-    await user.saveChanges({ saveToLobbyUser: true });
+    /* из-за предустановленного globalTutorialData.finishedTutorials
+    может уйти пустой объект и перетереться его содержимое в БД */
+    user.set({ ...globalTutorialData }, { removeEmptyObject: true });
+    await user.saveChanges();
   }
 
   function prepareStep(helper, { utils }) {
     const prepareFunction = helper.prepare;
-    const img = helper.img ? `${domain.game.configs.tutorialImgPrefix}${helper.img}` : undefined;
+    const img = helper.img ? `${lib.lobby.__tutorialImgPrefix}${helper.img}` : undefined;
     const nextStep = lib.utils.structuredClone({ ...helper, utils, img }, { convertFuncToString: true });
 
     if (prepareFunction) prepareFunction({ step: nextStep, user });
