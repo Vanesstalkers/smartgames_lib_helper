@@ -91,6 +91,15 @@ async (user, { action, step, tutorial: tutorialName, usedLink }) => {
       }
     }
     if (!nextStep.hideTime) nextStep.hideTime = null;
+    
+    // Проверяем наличие кнопки с флагом default
+    if (nextStep.buttons && Array.isArray(nextStep.buttons) && nextStep.buttons.length > 0) {
+      const hasDefaultButton = nextStep.buttons.some((button) => button.default);
+      if (!hasDefaultButton) {
+        nextStep.buttons[0].default = true;
+      }
+    }
+    
     return nextStep;
   }
 };

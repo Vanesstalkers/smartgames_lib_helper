@@ -50,8 +50,14 @@
             :class="[button.customClass]"
             :style="button.style || {}"
           >
+            <font-awesome-icon
+              v-if="button.exit"
+              :icon="['far', 'circle-xmark']"
+              size="lg"
+              style="color: #f4e205; margin: -2px 2px 0px 0px"
+            />
             {{ button.text }}
-            <font-awesome-icon v-if="button.exit" :icon="['far', 'circle-xmark']" size="lg" style="color: #f4e205" />
+            <div v-if="button.exit" style="color: white">{{ ' [Esc]' }}</div>
             <font-awesome-icon
               v-if="button.action === 'leaveGame'"
               :icon="['fas', 'right-from-bracket']"
@@ -137,7 +143,6 @@ export default {
   },
   props: {
     game: Object,
-    showProfile: Function,
     customMenu: Object,
     injectedActions: Object,
   },
@@ -281,7 +286,9 @@ export default {
 
         if (actions.before) {
           const context = { $root: this.$root.$el, state: this.state, utils, actions: this.injectedActions };
-          actionsData = (await new Function('return ' + actions.before)()(context)) || {};
+          const prefix = actions.before.startsWith('async ') ? '' : 'async ';
+          const beforeFunction = new Function('return ' + prefix + actions.before)();
+          actionsData = (await beforeFunction(context).catch((err) => prettyAlert(err))) || {};
         }
       }
       const { skipStep } = actionsData;
@@ -396,7 +403,7 @@ export default {
       this.menu = this.customMenu;
     },
     async menuAction({ action }) {
-      if (typeof action === 'function') return await action.call(this);
+      if (typeof action === 'function') return await action.call(this, { helper: this });
 
       if (action.tutorial) {
         await api.action
@@ -512,10 +519,17 @@ export default {
       }
     };
 
-    // Слушатель нажатия клавиши Ctrl
     const handleKeyDown = (event) => {
       if (event.key === 'Control') {
         document.body.classList.add('show-used-helper-links');
+      } else if (event.key === 'Escape' || event.keyCode === 27) {
+        // Обработка Esc для закрытия меню
+        if (self.menu && self.menu.buttons && Array.isArray(self.menu.buttons)) {
+          const exitButton = self.menu.buttons.find((button) => button && button.exit);
+          if (exitButton) {
+            self.menuAction({ action: exitButton.action });
+          }
+        }
       }
     };
 

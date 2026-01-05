@@ -10,10 +10,16 @@
       <div v-if="helperData.html" v-html="helperDataHtml()"></div>
       <div v-if="helperData.input" class="input">
         <div v-for="input in helperDataInputs()">
-          <input v-if="!input.type || input.type === 'input'" :key="input.name" :name="input.name" :value="input.value"
-            :placeholder="input.placeholder" />
+          <input
+            v-if="!input.type || input.type === 'input'"
+            :key="input.name"
+            :name="input.name"
+            :value="input.value"
+            :placeholder="input.placeholder"
+          />
           <select v-if="input.type === 'select'" :key="input.name" :name="input.name" :value="input.value">
-            <option v-for="option in input.options" :key="option.value" :value="option.value">{{ option.value }}
+            <option v-for="option in input.options" :key="option.value" :value="option.value">
+              {{ option.value }}
             </option>
           </select>
         </div>
@@ -21,10 +27,15 @@
       <div class="video" />
       <div v-if="helperData.buttons" class="controls">
         <button v-for="button in helperData.buttons" :key="button.text" v-on:click.stop="action({ ...button })">
-          <font-awesome-icon v-if="button.icon" :icon="button.icon" size="lg"
-            style="color: #f4e205; padding-right: 4px" />
+          <font-awesome-icon
+            v-if="button.icon"
+            :icon="button.icon"
+            size="lg"
+            style="color: #f4e205; margin: -1px 6px 0px 0px;"
+          />
           <span v-html="button.text" />
-          <div v-if="button.exit" class="exit-icon" />
+          <div v-if="button.exit" style="color: white">{{ ' [Esc]' }}</div>
+          <div v-if="button.default" style="color: white">{{ ' [Space]' }}</div>
         </button>
       </div>
     </div>
@@ -32,7 +43,6 @@
 </template>
 
 <script>
-
 export default {
   name: 'helper',
   components: {},
@@ -46,7 +56,7 @@ export default {
     dialogStyle: Object,
     action: {
       type: Function,
-      default: () => () => { },
+      default: () => () => {},
     },
     inputData: {
       type: Object,
@@ -71,6 +81,21 @@ export default {
     },
   },
   methods: {
+    handleKeyDown(event) {
+      if (event.key === 'Escape' || event.keyCode === 27) {
+        const exitButton = this.helperData.buttons?.find((button) => button.exit);
+        if (exitButton) {
+          this.action({ ...exitButton });
+        }
+      } else if (event.key === ' ' || event.keyCode === 32) {
+        // Предотвращаем прокрутку страницы при нажатии Space
+        event.preventDefault();
+        const defaultButton = this.helperData.buttons?.find((button) => button.default);
+        if (defaultButton) {
+          this.action({ ...defaultButton });
+        }
+      }
+    },
     helperDataHtml() {
       let html;
       if (typeof this.helperData.html === 'string') {
@@ -93,6 +118,12 @@ export default {
 
       return input;
     },
+  },
+  async mounted() {
+    document.addEventListener('keydown', this.handleKeyDown);
+  },
+  async beforeDestroy() {
+    document.removeEventListener('keydown', this.handleKeyDown);
   },
 };
 </script>
