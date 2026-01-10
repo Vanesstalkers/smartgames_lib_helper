@@ -11,9 +11,9 @@ async (user, { action, step, tutorial: tutorialName, usedLink }) => {
     } else if (currentTutorial.active) throw new Error('Другое обучение уже активно в настоящий момент');
 
     const { steps: tutorial, utils = {} } = lib.helper.getTutorial(tutorialName);
-    const helper = step ?
-      Object.entries(tutorial).find(([key]) => key === step)[1] :
-      Object.values(tutorial).find(({ initialStep }) => initialStep);
+    const helper = step
+      ? Object.entries(tutorial).find(([key]) => key === step)[1]
+      : Object.values(tutorial).find(({ initialStep }) => initialStep) || Object.values(tutorial)[0];
 
     if (!helper) throw new Error('Tutorial initial step not found');
 
@@ -91,7 +91,7 @@ async (user, { action, step, tutorial: tutorialName, usedLink }) => {
       }
     }
     if (!nextStep.hideTime) nextStep.hideTime = null;
-    
+
     // Проверяем наличие кнопки с флагом default
     if (nextStep.buttons && Array.isArray(nextStep.buttons) && nextStep.buttons.length > 0) {
       const hasDefaultButton = nextStep.buttons.some((button) => button.default);
@@ -99,7 +99,7 @@ async (user, { action, step, tutorial: tutorialName, usedLink }) => {
         nextStep.buttons[0].default = true;
       }
     }
-    
+
     return nextStep;
   }
 };

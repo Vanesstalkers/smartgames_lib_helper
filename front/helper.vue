@@ -3,7 +3,13 @@
     <div
       v-for="link in filledHelperLinks"
       :key="link.code"
-      :class="['helper-link', 'helper-avatar', link.customClass, link.used ? 'used' : '']"
+      :class="[
+        'helper-link',
+        'helper-avatar',
+        link.customClass,
+        link.displayForced ? 'display-forced' : '',
+        link.used ? 'used' : '',
+      ]"
       :style="{
         left: `${link.clientRect.left + (link.pos.left ? 0 : link.clientRect.width)}px`,
         top: `${link.clientRect.top + (link.pos.top ? 0 : link.clientRect.height)}px`,
@@ -50,12 +56,12 @@
             :class="[button.customClass]"
             :style="button.style || {}"
           >
-            <font-awesome-icon
+            <!-- <font-awesome-icon
               v-if="button.exit"
               :icon="['far', 'circle-xmark']"
               size="lg"
               style="color: #f4e205; margin: -2px 2px 0px 0px"
-            />
+            /> -->
             {{ button.text }}
             <div v-if="button.exit" style="color: white">{{ ' [Esc]' }}</div>
             <font-awesome-icon
@@ -352,7 +358,9 @@ export default {
         }, hideTime);
       }
     },
-    async action({ action, step, tutorial, link }) {
+    async action(data) {
+      let { action, step, tutorial, link } = data;
+
       if (link) {
         const a = document.createElement('a');
         a.style.display = 'none';
@@ -520,7 +528,12 @@ export default {
     };
 
     const handleKeyDown = (event) => {
-      if (event.key === 'Control') {
+      if (
+        event.key === 'Alt' ||
+        (event.altKey && !event.ctrlKey && !event.shiftKey && !event.metaKey && event.key !== 'Tab')
+      ) {
+        event.preventDefault();
+        event.stopPropagation();
         document.body.classList.add('show-used-helper-links');
       } else if (event.key === 'Escape' || event.keyCode === 27) {
         // Обработка Esc для закрытия меню
@@ -534,13 +547,18 @@ export default {
     };
 
     const handleKeyUp = (event) => {
-      if (event.key === 'Control') {
+      if (
+        event.key === 'Alt' ||
+        (event.altKey && !event.ctrlKey && !event.shiftKey && !event.metaKey && event.key !== 'Tab')
+      ) {
+        event.preventDefault();
+        event.stopPropagation();
         document.body.classList.remove('show-used-helper-links');
       }
     };
 
-    document.addEventListener('keydown', handleKeyDown);
-    document.addEventListener('keyup', handleKeyUp);
+    document.addEventListener('keydown', handleKeyDown, true);
+    document.addEventListener('keyup', handleKeyUp, true);
 
     this.mutationObserver = new MutationObserver(function (mutationsList, observer) {
       mutationsList.forEach((mutation) => {
@@ -1171,13 +1189,24 @@ body[tutorial-active] #app:after {
     opacity: 0.7;
   }
 
+  display: none;
+  &.display-forced {
+    display: block;
+    &.used {
+      display: none;
+    }
+  }
+}
+
+.mobile-view .helper-link {
+  display: block;
   &.used {
     display: none;
   }
 }
 
-.show-used-helper-links .helper-link.used {
-  display: block;
+.show-used-helper-links .helper-link {
+  display: block !important;
 }
 
 .mobile-view .helper-link {
