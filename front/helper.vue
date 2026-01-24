@@ -23,8 +23,13 @@
         v-on:click.stop="showAlertList = !showAlertList"
       />
       <div :class="['alert-list', showAlertList ? 'show' : '']">
-        <div v-for="(alert, index) in alertList" :key="index" class="alert" v-on:click.stop="">
-          <span v-html="alert" />
+        <div
+          v-for="(alert, index) in alertList"
+          :key="index"
+          :class="['alert', typeof alert === 'object' && alert.hideIcon ? 'hide-icon' : '']"
+          v-on:click.stop=""
+        >
+          <span v-html="typeof alert === 'object' ? alert.message : alert" />
           <div v-if="showHiddenAlert">
             <small v-html="hiddenAlert" />
           </div>
@@ -33,7 +38,12 @@
         </div>
       </div>
     </div>
-    <div v-if="menu" :class="['helper-menu', `scale-${state.guiScale}`, menu.bigControls ? 'big-controls' : '']">
+    <div
+      v-if="menu"
+      :class="['helper-menu', `scale-${state.guiScale}`, menu.bigControls ? 'big-controls' : '']"
+      :data-buttons-count="menu.buttons?.length || 0"
+      :style="{ '--buttons-count': menu.buttons?.length || 0 }"
+    >
       <div class="helper-avatar" />
       <div class="content">
         <div class="text" v-html="menu.text" />
@@ -505,13 +515,13 @@ export default {
       this.hiddenAlert = null;
       this.showAlertList = false;
     };
-    window.prettyAlert = ({ message, stack } = {}, { hideTime = 3000 } = {}) => {
+    window.prettyAlert = ({ message, stack } = {}, { hideTime = 3000, hideIcon = false } = {}) => {
       if (this.alertList.includes(message)) return;
 
       this.menu = null;
 
       if (message === 'Forbidden') message += ' (рекомендуется обновить страницу)';
-      this.alertList = [message];
+      this.alertList = [{ message, hideIcon }];
       this.showAlertList = true;
       self.hiddenAlert = stack;
       if (self.hiddenAlert) this.showHiddenAlert = false;
@@ -651,8 +661,8 @@ export default {
       background-image: url(@/assets/clear-black-back.png);
       color: white;
       font-size: 24px;
-      padding: 20px 60px 20px 80px;
-      min-width: 300px;
+      padding: 10px 20px 10px 40px;
+      min-width: 200px;
       text-align: center;
       cursor: default;
       margin-bottom: 10px;
@@ -672,6 +682,14 @@ export default {
         background-size: 30px;
       }
 
+      &.hide-icon {
+        padding-left: 20px;
+
+        &::before {
+          display: none;
+        }
+      }
+
       > .close {
         position: absolute;
         right: -10px;
@@ -682,6 +700,7 @@ export default {
         background-size: 20px;
         background-color: black;
         cursor: pointer;
+        border-radius: 50%;
 
         &:hover {
           opacity: 0.7;
@@ -771,7 +790,7 @@ export default {
 
   .alert-list {
     position: absolute;
-    top: 110%;
+    top: 120%;
     bottom: auto;
   }
 }
@@ -817,7 +836,7 @@ export default {
   scale: 0.8;
 
   &.big-controls {
-    bottom: 120px;
+    bottom: calc(var(--buttons-count) * 10px + 120px);
   }
 }
 
@@ -825,7 +844,7 @@ export default {
   scale: 1;
 
   &.big-controls {
-    bottom: 140px;
+    bottom: calc(var(--buttons-count) * 10px + 140px);
   }
 }
 
@@ -833,7 +852,7 @@ export default {
   scale: 1.5;
 
   &.big-controls {
-    bottom: 200px;
+    bottom: calc(var(--buttons-count) * 10px + 200px);
   }
 }
 
@@ -841,7 +860,7 @@ export default {
   scale: 2;
 
   &.big-controls {
-    bottom: 260px;
+    bottom: calc(var(--buttons-count) * 10px + 320px);
   }
 }
 
@@ -849,7 +868,7 @@ export default {
   scale: 2.5;
 
   &.big-controls {
-    bottom: 380px;
+    bottom: calc(var(--buttons-count) * 10px + 380px);
   }
 }
 
