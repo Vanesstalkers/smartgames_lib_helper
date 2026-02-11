@@ -134,7 +134,7 @@ export default {
         },
       }),
       helperLinks: ({ inGame = false } = {}) => ({
-        text: 'Активировать подсказки',
+        text: 'Активировать быстрые подсказки',
         action: async function () {
           await api.action
             .call({
@@ -171,6 +171,7 @@ export default {
       showHiddenAlert: false,
       mutationObserver: null,
       helperLinksBounds: {},
+      previousVisibleUnusedLinks: [], // Массив кодов видимых неиспользованных ссылок
       menu: null,
       dialogActive: false,
       helperClassMap: {},
@@ -466,6 +467,28 @@ export default {
         })
       );
       this.$set(this, 'helperLinksBounds', helperLinksBounds);
+
+      // Проверка на появление новых неиспользованных подсказок
+      const currentVisibleUnusedLinks = this.helperLinksEntries
+        .filter(([code, link]) => {
+          const isUnused = !link.used || link.used === 0 || link.used === null;
+          const isVisible = helperLinksBounds[code] !== null;
+          return isUnused && isVisible;
+        })
+        .map(([code]) => code);
+
+      // Находим новые подсказки (которые появились и не были в предыдущем состоянии)
+      const previousSet = new Set(this.previousVisibleUnusedLinks);
+      const newLinks = currentVisibleUnusedLinks.filter((code) => !previousSet.has(code));
+
+      // Если появились новые подсказки, показываем уведомление
+      if (newLinks.length > 0) {
+        const message = 'Зажми <b style="color: #f4e205">Alt</b> для просмотра быстрых подсказок';
+        window.prettyAlert({ message }, { hideIcon: true });
+      }
+
+      // Обновляем предыдущее состояние
+      this.$set(this, 'previousVisibleUnusedLinks', currentVisibleUnusedLinks);
     },
     isElementVisible(element) {
       if (!element) return false;
@@ -1173,7 +1196,7 @@ body[tutorial-active] #app:after {
 }
 
 .tutorial-active {
-  z-index: 10000 !important;
+  z-index: 10001 !important;
   position: relative;
   box-shadow: 0 0 100px 10px #f4e205;
 }
@@ -1211,21 +1234,19 @@ body[tutorial-active] #app:after {
   display: none;
   &.display-forced {
     display: block;
-    &.used {
-      display: none;
-    }
+  }
+
+  &.used {
+    display: none !important;
   }
 }
 
 .mobile-view .helper-link {
   display: block;
-  &.used {
-    display: none;
-  }
 }
 
 .show-used-helper-links .helper-link {
-  display: block !important;
+  display: block;
 }
 
 .mobile-view .helper-link {

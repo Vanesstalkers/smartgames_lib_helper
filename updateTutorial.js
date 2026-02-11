@@ -25,8 +25,8 @@ async (user, { action, step, tutorial: tutorialName, usedLink }) => {
     }
 
     if (usedLink) {
-      const used = (helperLinks[usedLink]?.used || 0) + 1;
-      globalTutorialData.helperLinks[usedLink] = { used };
+      const usedCount = (helperLinks[usedLink]?.usedCount || 0) + 1;
+      globalTutorialData.helperLinks[usedLink] = { used: true, usedCount };
     }
   } else if (currentTutorial.active) {
     if (action === 'exit') {
