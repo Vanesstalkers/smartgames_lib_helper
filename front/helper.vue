@@ -683,7 +683,7 @@ export default {
       border: 4px solid #f4e205;
       background-image: url(@/assets/clear-black-back.png);
       color: white;
-      font-size: 24px;
+      font-size: 18px;
       padding: 10px 20px 10px 40px;
       min-width: 200px;
       text-align: center;
@@ -697,12 +697,12 @@ export default {
       &::before {
         content: '';
         position: absolute;
-        left: 20px;
-        top: 20px;
-        width: 30px;
-        height: 30px;
+        left: 12px;
+        top: 12px;
+        width: 24px;
+        height: 24px;
         background-image: url(@/assets/alert.png);
-        background-size: 30px;
+        background-size: 24px;
       }
 
       &.hide-icon {
