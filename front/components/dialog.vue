@@ -2,9 +2,18 @@
   <div :class="['helper-dialog', 'scroll-off', `scale-${state.guiScale}`, ...dialogClass]" :style="dialogStyle">
     <div class="helper-avatar" />
     <div :class="['content', helperData.img && helperData.text ? 'split-img-text' : '']">
-      <div v-if="helperData.img" class="img">
-        <img :src="helperData.img" />
-      </div>
+      <div
+        v-if="helperData.img"
+        class="img"
+        :style="{
+          backgroundImage: `url(${helperData.img})`,
+          backgroundRepeat: 'no-repeat',
+          backgroundSize: 'contain',
+          backgroundPosition: 'center',
+          height: '400px',
+          marginBottom: '20px',
+        }"
+      ></div>
 
       <div v-if="helperData.text" class="text" v-html="helperData.text.trim()" />
       <div v-if="helperData.html" v-html="helperDataHtml()"></div>
@@ -31,7 +40,7 @@
             v-if="button.icon"
             :icon="button.icon"
             size="lg"
-            style="color: #f4e205; margin: -1px 6px 0px 0px;"
+            style="color: #f4e205; margin: -1px 6px 0px 0px"
           />
           <span v-html="button.text" />
           <div v-if="button.exit" style="color: white">{{ ' [Esc]' }}</div>
