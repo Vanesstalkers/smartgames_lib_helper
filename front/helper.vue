@@ -370,9 +370,11 @@ export default {
       }
     },
     async action(data) {
-      let { action, step, tutorial, link } = data;
+      let { action, step, tutorial, link, callback } = data;
 
-      if (link) {
+      if (typeof callback === 'function') {
+        await callback({ helper: this });
+      } else if (link) {
         const a = document.createElement('a');
         a.style.display = 'none';
         a.href = link;
@@ -382,7 +384,6 @@ export default {
       } else {
         let { actions, utils } = this.helperData;
         let actionsData = {};
-
         if (actions) {
           if (utils) {
             // вспомогательные функции, вызываемые внутри actions
