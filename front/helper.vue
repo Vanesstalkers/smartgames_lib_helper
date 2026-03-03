@@ -25,7 +25,7 @@
       <div :class="['alert-list', showAlertList ? 'show' : '']">
         <div
           v-for="(alert, index) in alertList"
-          :key="index"
+          :key="alert.id ?? index"
           :class="['alert', typeof alert === 'object' && alert.hideIcon ? 'hide-icon' : '']"
           v-on:click.stop=""
         >
@@ -34,7 +34,12 @@
             <small v-html="hiddenAlert" />
           </div>
           <div v-if="hiddenAlert" class="show-hide" v-on:click.stop="showHiddenAlert = true" />
-          <div class="close" v-on:click.stop="alertList = alertList.filter((_, i) => i !== index)" />
+          <div
+            class="close"
+            v-on:click.stop="
+              alertList = alertList.filter((a, i) => (a.id !== undefined ? a.id !== alert.id : i !== index))
+            "
+          />
         </div>
       </div>
     </div>
@@ -287,6 +292,8 @@ export default {
         if (pos.includes('left')) Object.assign(dialogStyle, { left: offset, right: 'auto' });
         if (pos.includes('right')) Object.assign(dialogStyle, { right: offset, left: 'auto' });
         dialogStyle['transform-origin'] = pos.join(' ');
+        if (pos.includes('w100'))
+          Object.assign(dialogStyle, { left: '0px', width: '100%', transformOrigin: 'bottom center' });
       }
       this.dialogStyle = dialogStyle;
 
@@ -540,20 +547,21 @@ export default {
       this.showAlertList = false;
     };
     window.prettyAlert = ({ message, stack } = {}, { hideTime = 3000, hideIcon = false } = {}) => {
-      if (this.alertList.includes(message)) return;
+      if (this.alertList.some((a) => a.message === message)) return;
 
       this.menu = null;
 
       if (message === 'Forbidden') message += ' (рекомендуется обновить страницу)';
-      this.alertList = [{ message, hideIcon }];
+      const id = Date.now() + Math.random();
+      this.alertList = [...this.alertList, { id, message, hideIcon }];
       this.showAlertList = true;
       self.hiddenAlert = stack;
       if (self.hiddenAlert) this.showHiddenAlert = false;
 
       if (hideTime > 0) {
         setTimeout(() => {
+          // this.alertList = this.alertList.filter((a) => a.id !== id);
           self.showAlertList = false;
-          // this.alertList = this.alertList.filter(alert => alert !== message);
           if (this.alertList.length === 0) {
             self.hiddenAlert = null;
           }
@@ -836,6 +844,7 @@ export default {
   left: 20px;
   bottom: 20px;
   max-width: 50%;
+  max-height: 100%;
 }
 
 .mobile-view .helper-menu {
