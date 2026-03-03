@@ -1,6 +1,6 @@
 async (user, { action, step, tutorial: tutorialName, usedLink }) => {
   const globalTutorialData = { finishedTutorials: {}, helperLinks: {} };
-  const { _id: userId, gameId, currentTutorial = {}, finishedTutorials = {}, helperLinks = {} } = user;
+  const { currentTutorial = {}, finishedTutorials = {}, helperLinks = {}, getTutorial = lib.helper.getTutorial } = user;
   const usedCount = (finishedTutorials[currentTutorial.active]?.count || 0) + 1;
 
   if (tutorialName) {
@@ -10,7 +10,7 @@ async (user, { action, step, tutorial: tutorialName, usedLink }) => {
       });
     } else if (currentTutorial.active) throw new Error('Другое обучение уже активно в настоящий момент');
 
-    const { steps: tutorial, utils = {} } = lib.helper.getTutorial(tutorialName);
+    const { steps: tutorial, utils = {} } = getTutorial(tutorialName);
     const helper = step
       ? Object.entries(tutorial).find(([key]) => key === step)[1]
       : Object.values(tutorial).find(({ initialStep }) => initialStep) || Object.values(tutorial)[0];
@@ -19,10 +19,6 @@ async (user, { action, step, tutorial: tutorialName, usedLink }) => {
 
     const nextStep = prepareStep(helper, { utils });
     user.set({ helper: nextStep, currentTutorial: { active: tutorialName } }, { reset: ['helper'] });
-
-    if (gameId && usedLink && (helperLinks[usedLink]?.used || 0) < 2) {
-      lib.store.broadcaster.publishAction.call(user, `game-${gameId}`, 'playerUseTutorial', { userId, usedLink });
-    }
 
     if (usedLink) {
       const usedCount = (helperLinks[usedLink]?.usedCount || 0) + 1;
@@ -36,7 +32,8 @@ async (user, { action, step, tutorial: tutorialName, usedLink }) => {
         finishedTutorials: { [currentTutorial.active]: { usedCount } },
       });
     } else {
-      const { steps: tutorial, utils = {} } = lib.helper.getTutorial(currentTutorial.active);
+      const { steps: tutorial, utils = {} } =
+        user.getTutorial?.(currentTutorial.active) || lib.helper.getTutorial(currentTutorial.active);
       const nextStep = prepareStep(tutorial[step], { utils });
 
       if (nextStep) {
