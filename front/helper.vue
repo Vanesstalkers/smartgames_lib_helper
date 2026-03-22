@@ -546,7 +546,7 @@ export default {
       this.hiddenAlert = null;
       this.showAlertList = false;
     };
-    window.prettyAlert = ({ message, stack } = {}, { hideTime = 3000, hideIcon = false } = {}) => {
+    window.prettyAlert = ({ message, stack } = {}, { hideTime = 3000, hideIcon = false, deleteTime = 0 } = {}) => {
       if (this.alertList.some((a) => a.message === message)) return;
 
       this.menu = null;
@@ -566,6 +566,9 @@ export default {
             self.hiddenAlert = null;
           }
         }, hideTime);
+      }
+      if (deleteTime > 0) {
+        setTimeout(() => (self.alertList = self.alertList.filter((a) => a.id !== id)), Math.max(hideTime, deleteTime));
       }
     };
 
