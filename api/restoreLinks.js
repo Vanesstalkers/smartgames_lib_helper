@@ -2,10 +2,12 @@ async (context, { inGame = false }) => {
   const { userId } = context.session.state;
   const user = lib.store('user').get(userId);
 
-  const tutorialSource = inGame
-    ? domain.game.tutorial || lib.game.tutorial
-    : domain.lobby.tutorial || lib.lobby.tutorial;
-  const helperLinks = tutorialSource?.getHelperLinks() || {};
+  const getHelperLinks = inGame
+    ? domain.game.tutorial?.getHelperLinks || lib.game.tutorial?.getHelperLinks
+    : domain.lobby.tutorial?.getHelperLinks || lib.lobby.tutorial?.getHelperLinks;
+  if (!getHelperLinks) throw new Error('getHelperLinks not found');
+
+  const helperLinks = getHelperLinks() || {};
 
   const updatedHelperLinks = {};
   for (const key of Object.keys(helperLinks)) {
