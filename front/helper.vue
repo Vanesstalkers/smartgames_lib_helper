@@ -282,6 +282,7 @@ export default {
       if (superPos) {
         document.body.setAttribute('tutorial-active', 1);
         this.$set(this.helperClassMap, 'super-pos', true);
+        Object.assign(dialogStyle, { top: `calc(50% - ${buttons.length * 2}%)` });
       } else if (fullscreen) {
         if (pos.includes('top'))
           Object.assign(dialogStyle, { top: offset, left: offset, width: '100%', height: '100%' });
@@ -678,6 +679,10 @@ export default {
   font-size: 14px;
   transform-origin: left bottom;
 
+  &:hover {
+    box-shadow: inset 0px 0px 10px 2px #f4e205;
+  }
+
   .alert-list {
     position: absolute;
     top: auto;
@@ -781,7 +786,8 @@ export default {
     }
 
     &:hover {
-      opacity: 0.7;
+      width: 25px;
+      height: 25px;
     }
   }
 
