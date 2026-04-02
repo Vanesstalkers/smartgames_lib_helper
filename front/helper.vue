@@ -715,7 +715,7 @@ export default {
         content: '';
         position: absolute;
         left: 12px;
-        top: 12px;
+        top: 8px;
         width: 24px;
         height: 24px;
         background-image: url(@/assets/alert.png);
