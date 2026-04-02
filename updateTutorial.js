@@ -1,9 +1,15 @@
-async (user, { action, step, tutorial: tutorialName, usedLink }) => {
+async (user, { action, step, tutorial: tutorialName, usedLink, workerDealSellerPlayerId } = {}) => {
   const globalTutorialData = { finishedTutorials: {}, helperLinks: {} };
   const { currentTutorial = {}, finishedTutorials = {}, helperLinks = {}, getTutorial = lib.helper.getTutorial } = user;
   const usedCount = (finishedTutorials[currentTutorial.active]?.count || 0) + 1;
 
   if (tutorialName) {
+    if (tutorialName === 'game-tutorial-workerDeal') {
+      if (workerDealSellerPlayerId != null) user.set({ workerDealSellerPlayerId });
+    } else {
+      user.set({ workerDealSellerPlayerId: null });
+    }
+
     if (action === 'changeTutorial') {
       Object.assign(globalTutorialData, {
         finishedTutorials: { [currentTutorial.active]: { usedCount } },
@@ -30,10 +36,12 @@ async (user, { action, step, tutorial: tutorialName, usedLink }) => {
         helper: null,
         currentTutorial: null,
         finishedTutorials: { [currentTutorial.active]: { usedCount } },
+        workerDealSellerPlayerId: null,
       });
     } else {
       const { steps: tutorial, utils = {} } =
         user.getTutorial?.(currentTutorial.active) || lib.helper.getTutorial(currentTutorial.active);
+      await maybeBootstrapWorkerDealBuyResource(user, step);
       const nextStep = prepareStep(tutorial[step], { utils });
 
       if (nextStep) {
@@ -53,6 +61,7 @@ async (user, { action, step, tutorial: tutorialName, usedLink }) => {
           helper: null,
           currentTutorial: null,
           finishedTutorials: { [currentTutorial.active]: { usedCount } },
+          workerDealSellerPlayerId: null,
         });
       }
     }
@@ -72,6 +81,25 @@ async (user, { action, step, tutorial: tutorialName, usedLink }) => {
     может уйти пустой объект и перетереться его содержимое в БД */
     user.set({ ...globalTutorialData }, { removeEmptyObject: true });
     await user.saveChanges();
+  }
+
+  async function maybeBootstrapWorkerDealBuyResource(user, step) {
+    if (step !== 'buyResource') return;
+    if (user.currentTutorial?.active !== 'game-tutorial-workerDeal') return;
+    const game = user.gameId ? lib.store('game').get(user.gameId) : null;
+    const buyer = game && user.playerId ? game.get(user.playerId) : null;
+    if (!game || !buyer) return;
+    const ui = user.workerDealPickUI || buyer.eventData?.workerDealPickUI;
+    if (ui?.pickButtons?.length) return;
+    const sellerPlayerId = user.workerDealSellerPlayerId;
+    if (!sellerPlayerId) return;
+    const startPick = domain?.game?.actions?.workerDealStartPick;
+    if (typeof startPick !== 'function') return;
+    try {
+      await startPick.call(game, { sellerPlayerId, amount: 1 }, buyer);
+    } catch (err) {
+      console.error('workerDeal tutorial buyResource bootstrap', err);
+    }
   }
 
   function prepareStep(helper, { utils }) {

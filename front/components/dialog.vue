@@ -19,7 +19,7 @@
           />
           <select v-if="input.type === 'select'" :key="input.name" :name="input.name" :value="input.value">
             <option v-for="option in input.options" :key="option.value" :value="option.value">
-              {{ option.value }}
+              {{ option.label != null ? option.label : option.value }}
             </option>
           </select>
         </div>
@@ -75,9 +75,11 @@ export default {
       return this.customData || this.state.store.user?.[this.state.currentUser]?.helper || {};
     },
     dialogClass() {
-      return Object.entries(this.dialogClassMap)
+      const names = Object.entries(this.dialogClassMap)
         .filter(([name, enabled]) => enabled)
         .map(([name]) => name);
+      if (this.helperData.bigControls) names.push('big-controls');
+      return names;
     },
   },
   methods: {
@@ -131,6 +133,13 @@ export default {
 <style lang="scss">
 .helper-dialog {
   .content {
+    .input {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+    }
+
     .img {
       img {
         width: auto;

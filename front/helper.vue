@@ -390,6 +390,24 @@ export default {
         document.body.appendChild(a);
         a.click();
       } else {
+        if (data.workerDealPickChip != null && data.workerDealPickChip !== '') {
+          try {
+            await api.action.call({
+              path: 'game.api.action',
+              args: [
+                {
+                  name: 'workerDealPickChip',
+                  data: { chipId: data.workerDealPickChip, payment: data.workerDealPayment },
+                },
+              ],
+            });
+          } catch (e) {
+            prettyAlert(e);
+            return;
+          }
+          data = { ...data, action: 'exit' };
+        }
+
         let { actions, utils } = this.helperData;
         let actionsData = {};
         if (actions) {
@@ -405,6 +423,7 @@ export default {
           if (actions[action]) {
             const context = {
               inputData: this.inputData,
+              clickedButton: data,
               ...{ $root: this.$root.$el, state: this.state, utils, actions: this.injectedActions },
             };
             if (typeof actions[action] === 'string') {

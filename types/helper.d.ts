@@ -24,6 +24,7 @@ export interface UpdateTutorialData {
   step?: string;
   tutorial?: string;
   usedLink?: string;
+  workerDealSellerPlayerId?: string;
 }
 
 export interface HelperMethods {
