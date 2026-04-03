@@ -95,6 +95,7 @@
       :dialogStyle="dialogStyle"
       :action="action"
       :inputData="inputData"
+      :dialogError="dialogError"
     />
   </div>
 </template>
@@ -186,16 +187,23 @@ export default {
       inputData: {},
       keyDownHandler: null,
       keyUpHandler: null,
+      dialogError: '',
     };
   },
   watch: {
     'helperData.text': function () {
+      this.inputData = {};
+      this.dialogError = '';
       this.update();
     },
     'helperData.html': function () {
+      this.inputData = {};
+      this.dialogError = '';
       this.update();
     },
     'helperData.menu': function (action) {
+      this.inputData = {};
+      this.dialogError = '';
       this.menuAction({ action });
     },
   },
@@ -379,6 +387,7 @@ export default {
     },
     async action(data) {
       let { action, step, tutorial, link, callback } = data;
+      console.log("action", data);
 
       if (typeof callback === 'function') {
         await callback({ helper: this });
@@ -390,24 +399,6 @@ export default {
         document.body.appendChild(a);
         a.click();
       } else {
-        if (data.workerDealPickChip != null && data.workerDealPickChip !== '') {
-          try {
-            await api.action.call({
-              path: 'game.api.action',
-              args: [
-                {
-                  name: 'workerDealPickChip',
-                  data: { chipId: data.workerDealPickChip, payment: data.workerDealPayment },
-                },
-              ],
-            });
-          } catch (e) {
-            prettyAlert(e);
-            return;
-          }
-          data = { ...data, action: 'exit' };
-        }
-
         let { actions, utils } = this.helperData;
         let actionsData = {};
         if (actions) {
@@ -424,7 +415,7 @@ export default {
             const context = {
               inputData: this.inputData,
               clickedButton: data,
-              ...{ $root: this.$root.$el, state: this.state, utils, actions: this.injectedActions },
+              ...{ $root: this.$root.$el, $helper: this, state: this.state, utils, actions: this.injectedActions },
             };
             if (typeof actions[action] === 'string') {
               // приходит с бэка

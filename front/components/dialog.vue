@@ -24,6 +24,7 @@
           </select>
         </div>
       </div>
+      <div v-if="dialogError" class="error" v-html="dialogError" />
       <div class="video" />
       <div v-if="helperData.buttons" class="controls">
         <button v-for="button in helperData.buttons" :key="button.text" v-on:click.stop="action({ ...button })">
@@ -62,6 +63,10 @@ export default {
       type: Object,
       default: () => ({}),
     },
+    dialogError: {
+      type: String,
+      default: '',
+    },
   },
   data() {
     return {};
@@ -75,11 +80,9 @@ export default {
       return this.customData || this.state.store.user?.[this.state.currentUser]?.helper || {};
     },
     dialogClass() {
-      const names = Object.entries(this.dialogClassMap)
+      return Object.entries(this.dialogClassMap)
         .filter(([name, enabled]) => enabled)
         .map(([name]) => name);
-      if (this.helperData.bigControls) names.push('big-controls');
-      return names;
     },
   },
   methods: {
@@ -133,6 +136,10 @@ export default {
 <style lang="scss">
 .helper-dialog {
   .content {
+    .error {
+      width: 100%;
+      color: red;
+    }
     .input {
       display: flex;
       flex-wrap: wrap;
