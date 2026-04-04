@@ -8,6 +8,16 @@
 
       <div v-if="helperData.text" class="text" v-html="helperData.text.trim()" />
       <div v-if="helperData.html" v-html="helperDataHtml()"></div>
+
+      <ul v-if="helperData.showList?.length" class="list">
+        <li
+          v-for="(item, idx) in helperData.showList.filter((item) => item)"
+          :key="'showList-' + idx"
+          v-on:click.stop="action(item.action)"
+          v-html="item.title"
+        />
+      </ul>
+
       <div v-if="helperData.input" class="input">
         <div v-for="input in helperDataInputs()">
           <input
@@ -166,6 +176,21 @@ export default {
       .text {
         width: 50%;
         padding-left: 20px;
+      }
+    }
+
+    .list {
+      margin-bottom: 20px;
+
+      > * {
+        cursor: pointer;
+        padding: 0px 20px;
+        text-align: left;
+        padding-bottom: 6px;
+
+        &:hover {
+          opacity: 0.7;
+        }
       }
     }
   }
