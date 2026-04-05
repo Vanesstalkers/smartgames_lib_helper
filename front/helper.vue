@@ -387,7 +387,6 @@ export default {
     },
     async action(data) {
       let { action, step, tutorial, link, callback } = data;
-      console.log("action", data);
 
       if (typeof callback === 'function') {
         await callback({ helper: this });
@@ -426,14 +425,16 @@ export default {
             }
           }
         }
-        if (actionsData?.exit) action = 'exit';
 
-        await api.action
-          .call({
-            path: 'helper.api.action',
-            args: [{ action, step, tutorial, isMobile: this.state.isMobile }],
-          })
-          .catch(prettyAlert);
+        if (actionsData?.exit) action = 'exit';
+        if (!actionsData?.preventApiCall) {
+          await api.action
+            .call({
+              path: 'helper.api.action',
+              args: [{ action, step, tutorial, isMobile: this.state.isMobile }],
+            })
+            .catch(prettyAlert);
+        }
         if (tutorial) this.menu = null;
       }
     },
