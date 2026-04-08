@@ -47,7 +47,7 @@ async (user, { action, step, tutorial: tutorialName, usedLink }) => {
             removeEmptyObject: true,
           }
         );
-        user.set({ currentTutorial: { step } });
+        user.set({ currentTutorial: { ...currentTutorial, step } });
       } else {
         Object.assign(globalTutorialData, {
           helper: null,
