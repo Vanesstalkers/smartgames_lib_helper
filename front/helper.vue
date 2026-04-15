@@ -558,8 +558,11 @@ export default {
       this.hiddenAlert = null;
       this.showAlertList = false;
     };
-    window.prettyAlert = ({ message, stack } = {}, { hideTime = 3000, hideIcon = false, deleteTime = 0 } = {}) => {
-      if (this.alertList.some((a) => a.message === message)) return;
+    window.prettyAlert = (
+      { message, stack } = {},
+      { hideTime = 3000, hideIcon = false, deleteTime = 5000, displayForced = false } = {}
+    ) => {
+      if (!displayForced && this.alertList.some((a) => a.message === message)) return;
 
       this.menu = null;
 
