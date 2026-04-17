@@ -36,8 +36,8 @@
       </div>
       <div v-if="dialogError" class="error" v-html="dialogError" />
       <div class="video" />
-      <div v-if="helperData.buttons" class="controls">
-        <button v-for="button in helperData.buttons" :key="button.text" v-on:click.stop="action({ ...button })">
+      <div v-if="helperDataButtons.length" class="controls">
+        <button v-for="button in helperDataButtons" :key="button.text" v-on:click.stop="action({ ...button })">
           <font-awesome-icon
             v-if="button.icon"
             :icon="button.icon"
@@ -94,18 +94,21 @@ export default {
         .filter(([name, enabled]) => enabled)
         .map(([name]) => name);
     },
+    helperDataButtons() {
+      return this.helperData.buttons?.filter(Boolean) || [];
+    },
   },
   methods: {
     handleKeyDown(event) {
       if (event.key === 'Escape' || event.keyCode === 27) {
-        const exitButton = this.helperData.buttons?.find((button) => button.exit);
+        const exitButton = this.helperDataButtons?.find((button) => button.exit);
         if (exitButton) {
           this.action({ ...exitButton });
         }
       } else if (event.key === ' ' || event.keyCode === 32) {
         // Предотвращаем прокрутку страницы при нажатии Space
         event.preventDefault();
-        const defaultButton = this.helperData.buttons?.find((button) => button.default);
+        const defaultButton = this.helperDataButtons?.find((button) => button.default);
         if (defaultButton) {
           this.action({ ...defaultButton });
         }
