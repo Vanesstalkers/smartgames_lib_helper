@@ -1115,9 +1115,30 @@ export default {
       margin: 20px 0px 10px 20px;
 
       > option {
-        font-size: 10px;
+        font-size: 12px;
       }
     }
+  }
+}
+
+.helper-dialog.scale-2 {
+  select > option {
+    font-size: 16px !important;
+  }
+}
+.helper-dialog.scale-3 {
+  select > option {
+    font-size: 18px !important;
+  }
+}
+.helper-dialog.scale-4 {
+  select > option {
+    font-size: 32px !important;
+  }
+}
+.helper-dialog.scale-5 {
+  select > option {
+    font-size: 36px !important;
   }
 }
 
