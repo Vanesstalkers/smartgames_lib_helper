@@ -321,7 +321,7 @@ export default {
           const context = { $root: this.$root.$el, state: this.state, utils, actions: this.injectedActions };
           const prefix = actions.before.startsWith('async ') ? '' : 'async ';
           const beforeFunction = new Function('return ' + prefix + actions.before)();
-          actionsData = (await beforeFunction(context).catch((err) => prettyAlert(err))) || {};
+          actionsData = (await beforeFunction(context).catch((err) => prettyAlert(err, { deleteTime: 0 }))) || {};
         }
       }
       const { skipStep } = actionsData;
@@ -336,40 +336,42 @@ export default {
       document.querySelectorAll('.tutorial-active').forEach((el) => {
         el.classList.remove('tutorial-active');
       });
-
       if (active.length) {
+        if (typeof active === 'string') active = [{ selector: active }];
         for (let { selector, onlyFirst, onclick, customClass, css } of active) {
           // если в beforeAction проводились манипуляции с dom, то селектор отработает только в nextTick
-          document.querySelectorAll(selector).forEach((el, index) => {
-            if (onlyFirst && index > 0) return;
-            if (el) {
-              // без nextTick не будет срабатывать проверка на удаление 'tutorial-active' в mutationObserver
-              this.$nextTick(() => {
-                el.classList.add('tutorial-active');
+          setTimeout(() => {
+            document.querySelectorAll(selector).forEach((el, index) => {
+              if (onlyFirst && index > 0) return;
+              if (el) {
+                // без nextTick не будет срабатывать проверка на удаление 'tutorial-active' в mutationObserver
+                this.$nextTick(() => {
+                  el.classList.add('tutorial-active');
 
-                if (css) {
-                  // Сохраняем текущие стили перед перезаписью
-                  if (!el._originalStyles) {
-                    el._originalStyles = {};
-                    const computedStyle = window.getComputedStyle(el);
-                    Object.entries(css).forEach(([origKey, val]) => {
-                      const key =
-                        origKey in el.style || el.style.hasOwnProperty(origKey)
-                          ? origKey
-                          : this.convertToFirefoxStyle(origKey);
-                      el._originalStyles[key] = computedStyle.getPropertyValue(key);
-                      el.style[key] = val;
-                    });
+                  if (css) {
+                    // Сохраняем текущие стили перед перезаписью
+                    if (!el._originalStyles) {
+                      el._originalStyles = {};
+                      const computedStyle = window.getComputedStyle(el);
+                      Object.entries(css).forEach(([origKey, val]) => {
+                        const key =
+                          origKey in el.style || el.style.hasOwnProperty(origKey)
+                            ? origKey
+                            : this.convertToFirefoxStyle(origKey);
+                        el._originalStyles[key] = computedStyle.getPropertyValue(key);
+                        el.style[key] = val;
+                      });
+                    }
                   }
-                }
-                if (customClass) {
-                  el.classList.add(customClass);
-                  el._customClass = customClass;
-                }
-                if (onclick) el.addEventListener('click', () => this.action(onclick));
-              });
-            }
-          });
+                  if (customClass) {
+                    el.classList.add(customClass);
+                    el._customClass = customClass;
+                  }
+                  if (onclick) el.addEventListener('click', () => this.action(onclick));
+                });
+              }
+            });
+          }, 500);
         }
       }
 
@@ -504,7 +506,7 @@ export default {
       // Если появились новые подсказки, показываем уведомление
       if (newLinks.length > 0) {
         const message = 'Зажми <b style="color: #f4e205">Alt</b> для просмотра быстрых подсказок';
-        window.prettyAlert({ message }, { hideIcon: true });
+        window.prettyAlert({ message }, { hideTime: 10000, hideIcon: true });
       }
 
       // Обновляем предыдущее состояние
