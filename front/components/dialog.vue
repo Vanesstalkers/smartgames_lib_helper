@@ -20,6 +20,7 @@
 
       <div v-if="helperData.input" class="input">
         <div v-for="input in helperDataInputs()">
+          <label v-if="input.label">{{ input.label }}</label>
           <input
             v-if="!input.type || input.type === 'input'"
             :key="input.name"
