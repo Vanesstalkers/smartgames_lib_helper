@@ -1,6 +1,10 @@
 <template>
   <div :class="['helper-dialog', 'scroll-off', `scale-${state.guiScale}`, ...dialogClass]" :style="dialogStyle">
     <div class="helper-avatar" />
+    <div v-if="!controlsDisabled" class="dialog-controls">
+      <div @click="changeScale(0.1)">+</div>
+      <div @click="changeScale(-0.1)" style="line-height: 28px">-</div>
+    </div>
     <div :class="['content', helperData.img && helperData.text ? 'split-img-text' : '']">
       <div v-if="helperData.img" class="img">
         <img :src="helperData.img" />
@@ -78,6 +82,10 @@ export default {
       type: String,
       default: '',
     },
+    controlsDisabled: {
+      type: Boolean,
+      default: false,
+    },
   },
   data() {
     return {};
@@ -136,6 +144,9 @@ export default {
       }
 
       return input;
+    },
+    changeScale(delta) {
+      api.action.call({ path: 'user.api.update', args: [{ changeHelperScale: delta }] }).catch(prettyAlert);
     },
   },
   async mounted() {
@@ -205,6 +216,34 @@ export default {
 
   .text-left {
     text-align: left;
+  }
+
+  .dialog-controls {
+    position: absolute;
+    right: 70px;
+    top: 15px;
+    font-size: 36px;
+    display: flex;
+    gap: 4px;
+
+    > div {
+      cursor: pointer;
+      color: white;
+      background: #f4e205;
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      line-height: 30px;
+
+      &:hover {
+        border: 2px solid transparent;
+        margin-top: -1px;
+        margin-left: -1px;
+      }
+      &:active {
+        filter: brightness(0.8);
+      }
+    }
   }
 }
 </style>

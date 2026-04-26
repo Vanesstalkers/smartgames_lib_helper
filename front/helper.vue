@@ -9,6 +9,7 @@
         link.customClass,
         link.displayForced ? 'display-forced' : '',
         link.used ? 'used' : '',
+        'scale-' + state.guiScale,
       ]"
       :style="{
         left: `${link.clientRect.left + (link.pos.left ? 0 : link.clientRect.width)}px`,
@@ -206,6 +207,9 @@ export default {
       this.dialogError = '';
       this.menuAction({ action });
     },
+    userHelperScale: function (action) {
+      this.updateHelperScale();
+    },
   },
   computed: {
     state() {
@@ -213,6 +217,9 @@ export default {
     },
     helperData() {
       return this.state.store.user?.[this.state.currentUser]?.helper || {};
+    },
+    userHelperScale() {
+      return this.state.store.user?.[this.state.currentUser]?.lobbyConfigs?.helperScale || 1;
     },
     helperDialogActive() {
       return this.helperData.text || this.helperData.html || this.helperData.img ? true : false;
@@ -304,7 +311,9 @@ export default {
         if (pos.includes('w100'))
           Object.assign(dialogStyle, { left: '0px', width: '100%', transformOrigin: 'bottom center' });
       }
+
       this.dialogStyle = dialogStyle;
+      if (this.userHelperScale) this.updateHelperScale();
 
       let actionsData = {};
       if (actions) {
@@ -386,6 +395,34 @@ export default {
           self.$set(this.helperClassMap, 'dialog-active', false);
         }, hideTime);
       }
+    },
+    updateHelperScale() {
+      let transform = `scale(${this.userHelperScale})`;
+
+      let offset = 50;
+      if (this.helperData.superPos) {
+        switch (state.guiScale) {
+          case 1:
+            offset = 60;
+            break;
+          case 2:
+            offset = 50;
+            break;
+          case 3:
+            offset = 40;
+            break;
+          case 4:
+            offset = 25;
+            break;
+          case 5:
+            offset = 20;
+            break;
+        }
+        
+        offset -= ((offset * this.userHelperScale) / 10).toFixed(2);
+        transform += ` translate(-${offset}%, -${offset}%)`;
+      }
+      this.$set(this.dialogStyle, 'transform', transform);
     },
     async action(data) {
       let { action, step, tutorial, link, callback } = data;
@@ -1256,6 +1293,12 @@ body[tutorial-active] #app:after {
   z-index: 10001 !important;
   position: relative;
   box-shadow: 0 0 100px 10px #f4e205;
+  animation: tutorial-blink 2s ease-in-out infinite;
+  @keyframes tutorial-blink {
+    50% {
+      box-shadow: none;
+    }
+  }
 }
 
 .tutorial-active.rounded {
@@ -1283,6 +1326,31 @@ body[tutorial-active] #app:after {
   cursor: pointer;
   box-shadow: 0 0 10px 10px #f4e205;
   border: 1px solid #f4e205;
+
+  &.scale-2 {
+    width: 30px;
+    height: 30px;
+    margin-left: -25px;
+    margin-top: -25px;
+  }
+  &.scale-3 {
+    width: 40px;
+    height: 40px;
+    margin-left: -30px;
+    margin-top: -30px;
+  }
+  &.scale-4 {
+    width: 60px;
+    height: 60px;
+    margin-left: -40px;
+    margin-top: -40px;
+  }
+  &.scale-5 {
+    width: 75px;
+    height: 75px;
+    margin-left: -50px;
+    margin-top: -50px;
+  }
 
   &:hover {
     opacity: 0.7;
