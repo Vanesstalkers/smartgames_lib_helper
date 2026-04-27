@@ -1,9 +1,10 @@
 <template>
   <div :class="['helper-dialog', 'scroll-off', `scale-${state.guiScale}`, ...dialogClass]" :style="dialogStyle">
-    <div class="helper-avatar" />
-    <div v-if="!controlsDisabled" class="dialog-controls">
-      <div @click="changeScale(0.1)">+</div>
-      <div @click="changeScale(-0.1)" style="line-height: 28px">-</div>
+    <div class="helper-avatar">
+      <div v-if="!controlsDisabled" class="dialog-controls">
+        <div class="dialog-control-button plus" @click="changeScale(0.1)" />
+        <div class="dialog-control-button minus" @click="changeScale(-0.1)" />
+      </div>
     </div>
     <div :class="['content', helperData.img && helperData.text ? 'split-img-text' : '']">
       <div v-if="helperData.img" class="img">
@@ -218,30 +219,48 @@ export default {
     text-align: left;
   }
 
-  .dialog-controls {
-    position: absolute;
-    right: 70px;
-    top: 15px;
-    font-size: 36px;
-    display: flex;
-    gap: 4px;
+  .helper-avatar {
+    &:hover .dialog-controls {
+      display: flex;
+    }
+    .dialog-controls {
+      display: none;
+      position: absolute;
+      font-size: 36px;
+      gap: 4px;
+      right: 20px;
+      top: 20px;
+      width: 50px;
+      height: 50px;
 
-    > div {
-      cursor: pointer;
-      color: white;
-      background: #f4e205;
-      border-radius: 50%;
-      width: 30px;
-      height: 30px;
-      line-height: 30px;
+      .dialog-control-button {
+        cursor: pointer;
+        width: 20px;
+        height: 20px;
+        background-size: 20px;
+        background-repeat: no-repeat;
+        background-position: center;
 
-      &:hover {
-        border: 2px solid transparent;
-        margin-top: -1px;
-        margin-left: -1px;
-      }
-      &:active {
-        filter: brightness(0.8);
+        position: absolute;
+        &.plus {
+          top: 2px;
+          left: -2px;
+          background-image: url(../assets/zoom_plus.png);
+        }
+        &.minus {
+          background-image: url(../assets/zoom_minus.png);
+          top: 33px;
+          right: 2px;
+        }
+
+        &:hover {
+          border: 2px solid transparent;
+          margin-top: -1px;
+          margin-left: -1px;
+        }
+        &:active {
+          filter: brightness(0.8);
+        }
       }
     }
   }

@@ -72,12 +72,6 @@
             :class="[button.customClass]"
             :style="button.style || {}"
           >
-            <!-- <font-awesome-icon
-              v-if="button.exit"
-              :icon="['far', 'circle-xmark']"
-              size="lg"
-              style="color: #f4e205; margin: -2px 2px 0px 0px"
-            /> -->
             {{ button.text }}
             <div v-if="button.exit" style="color: white">{{ ' [Esc]' }}</div>
             <font-awesome-icon
