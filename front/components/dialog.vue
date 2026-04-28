@@ -18,13 +18,14 @@
         <li
           v-for="(item, idx) in helperData.showList.filter((item) => item)"
           :key="'showList-' + idx"
+          :class="{ 'without-action': !item.action }"
           v-on:click.stop="action(item.action)"
           v-html="item.title"
         />
       </ul>
 
       <div v-if="helperData.input" class="input">
-        <div v-for="input in helperDataInputs()">
+        <div v-for="input in helperDataInputs()" :class="input.containerClass">
           <label v-if="input.label">{{ input.label }}</label>
           <input
             v-if="!input.type || input.type === 'input'"
@@ -38,12 +39,25 @@
               {{ option.label != null ? option.label : option.value }}
             </option>
           </select>
+          <textarea
+            type="textarea"
+            v-if="input.type === 'textarea'"
+            :key="input.name"
+            :name="input.name"
+            :value="input.value"
+            :placeholder="input.placeholder"
+          />
         </div>
       </div>
       <div v-if="dialogError" class="error" v-html="dialogError" />
       <div class="video" />
       <div v-if="helperDataButtons.length" class="controls">
-        <button v-for="button in helperDataButtons" :key="button.text" v-on:click.stop="action({ ...button })">
+        <button
+          v-for="button in helperDataButtons"
+          :key="button.text"
+          v-on:click.stop="action({ ...button })"
+          :disabled="button.disabled"
+        >
           <font-awesome-icon
             v-if="button.icon"
             :icon="button.icon"
@@ -110,6 +124,8 @@ export default {
   },
   methods: {
     handleKeyDown(event) {
+      if (event.target !== document.body) return;
+
       if (event.key === 'Escape' || event.keyCode === 27) {
         const exitButton = this.helperDataButtons?.find((button) => button.exit);
         if (exitButton) {
@@ -135,6 +151,7 @@ export default {
     },
     helperDataInputs() {
       let input = this.helperData.input;
+      console.log('helperDataInputs', input);
       if (typeof input === 'string') input = new Function(`return ${this.helperData.input}`)()({ ...this.game });
       if (!Array.isArray(input)) input = [input];
 
@@ -198,7 +215,7 @@ export default {
     .list {
       margin-bottom: 20px;
 
-      > * {
+      > *:not(.without-action) {
         cursor: pointer;
         padding: 0px 20px;
         text-align: left;
@@ -261,6 +278,16 @@ export default {
         &:active {
           filter: brightness(0.8);
         }
+      }
+    }
+  }
+
+  .controls {
+    button {
+      &:disabled {
+        opacity: 1;
+        filter: grayscale(1);
+        cursor: default !important;
       }
     }
   }

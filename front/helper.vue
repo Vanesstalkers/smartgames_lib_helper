@@ -209,6 +209,9 @@ export default {
     state() {
       return this.$root.state || {};
     },
+    player() {
+      return this.sessionPlayer();
+    },
     helperData() {
       return this.state.store.user?.[this.state.currentUser]?.helper || {};
     },
@@ -412,7 +415,7 @@ export default {
             offset = 20;
             break;
         }
-        
+
         offset -= ((offset * this.userHelperScale) / 10).toFixed(2);
         transform += ` translate(-${offset}%, -${offset}%)`;
       }
@@ -446,6 +449,7 @@ export default {
           if (actions[action]) {
             const context = {
               inputData: this.inputData,
+              helperData: this.helperData,
               clickedButton: data,
               ...{ $root: this.$root.$el, $helper: this, state: this.state, utils, actions: this.injectedActions },
             };
@@ -1126,7 +1130,8 @@ export default {
     width: 100%;
     align-items: start;
 
-    input {
+    input,
+    textarea {
       color: #f4e205;
       border-color: #f4e205;
       text-align: center;
@@ -1149,6 +1154,16 @@ export default {
 
       > option {
         font-size: 12px;
+      }
+    }
+
+    .w100 {
+      width: 100%;
+      padding: 0px 20px;
+
+      input,
+      textarea {
+        width: 100%;
       }
     }
   }
@@ -1223,7 +1238,7 @@ export default {
     justify-content: center;
     cursor: pointer;
 
-    &:hover {
+    &:not(:disabled):hover {
       color: white !important;
 
       a {
